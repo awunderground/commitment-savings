@@ -4,6 +4,10 @@ This repository contains an extension of *Tying Odysseus to the Mast: Evidence f
 
 This repository is the final project for Math 513, Introduction to Nonparametric Statistics, at Georgetown University. 
 
+## Branching
+
+For now, I am working on branch `aaron`
+
 ## Project Authors
 
 * Luke Botti
