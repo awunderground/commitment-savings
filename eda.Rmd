@@ -19,7 +19,7 @@ options(scipen = 999)
 
 library(tidyverse)
 library(haven)
-
+library(quantreg)
 ```
 
 ```{r}
@@ -32,7 +32,6 @@ combined <- read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
 ```
 
 ```{r}
-
 combined <- combined  %>%
   # turn dollars into hundreds of dollars
   mutate(
@@ -45,11 +44,15 @@ combined <- combined  %>%
   mutate(brgy_penetration = no_clients / pop)
   
 combined <- combined %>%
+  # calculate the mean and sd for each bank
+  # the Stata code is a little cyptic
   group_by(brgy_penetration) %>%
   mutate(sd_totbal = sd(totbal),
          mean_totbal = mean(totbal)) %>%
   ungroup()
 
+# create a set with the 1777 observations that are in the SEED, 
+# marketing treatment, or control group
 treated <- combined %>%
   filter(!is.na(treatment))
 
@@ -118,32 +121,29 @@ summary(aov(hyper_mon_new2 ~ factor(group), data = treated))
 count(treated, group)
 ```
 
+## Remake Table VII
 
-Questions:
+```{r}
+rq(as.numeric(balchange) ~ treatment + marketing, 
+   tau = seq(from = 0.1, to = 0.9, by = 0.1),
+   data = filter(seed011204, !is.na(treatment)))
+
+rq(as.numeric(balchange) ~ treatment + marketing, 
+   tau = seq(from = 0.1, to = 0.9, by = 0.1),
+   data = treated)
+```
+
+## Questions
+
+* Remake table 6 with nonparametric regression techniques. To deal with outliers, they do a bunch of probits for specific thresholds. 
+* Remake table 7 with kernel density estimators and compare with the percentiles percentiles from the quantile regression
+* Estimate the proportion of people who would open an account
+* Do a k-sample test to compare the savings or change in svaings of the three groups. Then do pair-wise tests with corrections for multiple testing. 
+* We can use LOESS/KDE to compare any of the bivariate relationships
+    * Year of education by totbal or change in totbal
+    * Age or age2 by totbal or change in totbal
+
+
 
 1. We examine whether individuals who exhibit hyperbolic preferences in hypothetical time preference questions are more likely to open such accounts, since theoretically these individuals may have a preference for commitment. 
 2. Second, we test whether such individuals save more as a result of opening the account.
-  
-Our questions:
-
-* Remake table 2 with non-parametric standard errors
-* Remake table 3 (meh)
-* Remake table 6
-* Remake table 7
-
-
-
-* Did the respondents make positive savings?
-* What proportion of people opened the account?
-* Did the treatment group save more than the control group?
-* estimate the pdf of savings and then estimate the percentiles
-
-
-
-```{r}
-count(combined, group)
-
-
-
-
-```
