@@ -1,0 +1,149 @@
+---
+output:
+  pdf_document
+fontsize: 10pt 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(dev = "cairo_pdf")
+knitr::opts_chunk$set(fig.width = 6)
+knitr::opts_chunk$set(fig.height = 4)
+
+options(knitr.kable.NA = "")
+options(scipen = 999)
+
+library(tidyverse)
+library(haven)
+
+```
+
+```{r}
+seed011204 <-read_stata("dataverse_files/seedanalysis_011204_1.dta")
+
+seed080404 <- read_stata("dataverse_files/seedanalysis_080404_1.dta")
+
+combined <- read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
+
+```
+
+```{r}
+
+combined <- combined  %>%
+  # turn dollars into hundreds of dollars
+  mutate(
+    totbal = totbal / 100,
+    newtotbal = newtotbal / 100
+  ) %>%
+  # fix population variable
+  mutate(pop = as.numeric(str_replace(pop, ",", ""))) %>%
+  # create bank penetration variable%>%
+  mutate(brgy_penetration = no_clients / pop)
+  
+combined <- combined %>%
+  group_by(brgy_penetration) %>%
+  mutate(sd_totbal = sd(totbal),
+         mean_totbal = mean(totbal)) %>%
+  ungroup()
+
+treated <- combined %>%
+  filter(!is.na(treatment))
+
+treated <- treated %>%
+  # create control dummy
+  mutate(control = as.numeric(group == "C")) %>%
+  # create distance to bank variable
+  mutate(dist_GB = 
+           case_when(
+             butuan == 1 ~ dbutuan,
+             ampayon == 1 ~ dampayon
+           )
+  )
+  
+treated %>%
+  group_by(group) %>%
+  summarize(n(), mean(totbal), sd(totbal))
+
+```
+
+## Remake Table II
+
+### Panel A.
+
+```{r}
+summary(lm(totbal ~ factor(group) - 1, data = treated))
+summary(aov(totbal ~ factor(group), data = treated))
+
+summary(lm(active ~ factor(group) - 1, data = treated))
+summary(aov(active ~ factor(group), data = treated))
+
+summary(lm(dist_GB ~ factor(group) - 1, data = treated))
+summary(aov(dist_GB ~ factor(group), data = treated))
+
+summary(lm(brgy_penetration ~ factor(group) - 1, data = treated))
+summary(aov(brgy_penetration ~ factor(group), data = treated))
+
+summary(lm(sd_totbal ~ factor(group) - 1, data = treated))
+summary(aov(sd_totbal ~ factor(group), data = treated))
+
+summary(lm(mean_totbal ~ factor(group) - 1, data = treated))
+summary(aov(mean_totbal ~ factor(group), data = treated))
+
+summary(lm(pop ~ factor(group) - 1, data = treated))
+summary(aov(mean_totbal ~ factor(group), data = treated))
+```
+
+### Panel B. 
+
+```{r}
+summary(lm(yearsed ~ factor(group) - 1, data = treated))
+summary(aov(yearsed ~ factor(group), data = treated))
+
+summary(lm(female ~ factor(group) - 1, data = treated))
+summary(aov(female ~ factor(group), data = treated))
+
+summary(lm(age ~ factor(group) - 1, data = treated))
+summary(aov(age ~ factor(group), data = treated))
+
+summary(lm(impatient_mon01 ~ factor(group) - 1, data = treated))
+summary(aov(impatient_mon01 ~ factor(group), data = treated))
+
+summary(lm(hyper_mon_new2 ~ factor(group) - 1, data = treated))
+summary(aov(hyper_mon_new2 ~ factor(group), data = treated))
+
+count(treated, group)
+```
+
+
+Questions:
+
+1. We examine whether individuals who exhibit hyperbolic preferences in hypothetical time preference questions are more likely to open such accounts, since theoretically these individuals may have a preference for commitment. 
+2. Second, we test whether such individuals save more as a result of opening the account.
+  
+Our questions:
+
+* Remake table 2 with non-parametric standard errors
+* Remake table 3 (meh)
+* Remake table 6
+* Remake table 7
+
+
+
+* Did the respondents make positive savings?
+* What proportion of people opened the account?
+* Did the treatment group save more than the control group?
+* estimate the pdf of savings and then estimate the percentiles
+
+
+
+```{r}
+count(combined, group)
+
+
+
+
+```
