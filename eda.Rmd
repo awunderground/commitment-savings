@@ -135,13 +135,15 @@ rq(as.numeric(balchange) ~ treatment + marketing,
 
 ## Questions
 
-* Remake table 6 with bootstrapped standard errors
+* Remake table 6 with nonparametric regression techniques. To deal with outliers, they do a bunch of probits for specific thresholds. 
 * Remake table 7 with kernel density estimators and compare with the percentiles percentiles from the quantile regression
 * Estimate the proportion of people who would open an account
 * Do a k-sample test to compare the savings or change in svaings of the three groups. Then do pair-wise tests with corrections for multiple testing. 
 * We can use LOESS/KDE to compare any of the bivariate relationships
     * Year of education by totbal or change in totbal
     * Age or age2 by totbal or change in totbal
+
+
 
 1. We examine whether individuals who exhibit hyperbolic preferences in hypothetical time preference questions are more likely to open such accounts, since theoretically these individuals may have a preference for commitment. 
 2. Second, we test whether such individuals save more as a result of opening the account.
