@@ -1,0 +1,66 @@
+---
+header-includes:
+   - \usepackage{ulem}
+   - \usepackage{float}
+   - \usepackage{algorithm}
+   - \usepackage{algorithmic}
+output:
+  pdf_document
+fontsize: 10pt 
+editor_options: 
+  chunk_output_type: console
+bibliography: references.bib  
+---
+
+```{r rmarkdown-setup, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(dev = "cairo_pdf")
+knitr::opts_chunk$set(fig.width = 6)
+knitr::opts_chunk$set(fig.height = 4)
+
+options(knitr.kable.NA = "")
+options(scipen = 999)
+```
+
+# Commitment Savings Devices
+
+## 1. Introduction
+
+## 2. Summary of Data for Analysis
+
+## 3. Paired Comparisons
+
+### 3.1 Methods
+
+### 3.2 Results
+
+### 3.3 Discussion of Results
+
+## 4. Two-sample Test and K-Sample Test
+
+### 4.1 Methods
+
+### 4.2 Results
+
+### 4.3 Discussion of Results
+
+## 5. Robust Regression
+
+### 5.1 Methods
+
+### 5.2 Results
+
+### 5.3 Discussion of Results
+
+## Conclusion
+
+\newpage
+
+## Appendix
+
+```{r ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```
+
+## References
