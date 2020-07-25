@@ -117,6 +117,9 @@ treated <- combined %>%
 The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
 
 ```{r}
+#
+# Create a plot to show the skew of balchange
+#
 skewa <- six_months %>%
   ggplot(aes(balchange)) +
   geom_density() +
@@ -148,6 +151,9 @@ rm(skewa, skewb)
 The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
 
 ```{r}
+#
+# Create a plot to show the skew of balchange by group
+#
 skewa <- six_months %>%
   ggplot(aes(balchange, y = group, color = group)) +
   geom_point(alpha = 0.2) +
@@ -195,7 +201,9 @@ The authors then estimate probit models on the twelve month data and find statis
 We first explore their constructed variables and then we offer an alternative approach. A closer look at the data show that many balances decreased or remained the same and only a fraction of balances increased after twelve months.
 
 ```{r}
-# 12 months 
+#
+# Count the types of change in balchange
+# 
 treated <-  treated %>%
   mutate(change =
            case_when(
@@ -216,17 +224,18 @@ Importantly, inside the treatment group, more balances decreased than increased 
 ```{r}
 count(treated, group, change) %>%
   knitr::kable(caption = "Change in Balance After Twelve Months by Treatment Group")
+
 ```
 
 The story is even more dramatic for the 20 percent increase outcome variable. 
 
 ```{r}
-
 count(treated, frac_change_20) %>%
   knitr::kable(caption = "20+% Change in Balance After Twelve Months")
 
 count(treated, group, frac_change_20) %>%
   knitr::kable(caption = "20+% Change in Balance After Twelve Months")
+
 ```
 
 ### 5.1 Methods
@@ -267,6 +276,9 @@ Like [@Ashraf2006], we estimate the intent-to-treat (ITT) effect with the change
 We begin by recreating half of Table VI from [@Ashraf2006]. All models are estimated using ordinary least squares regression and the standard errors are HC1 heteroskedasticity-robust standard errors [@MacKinnon1985].
 
 ```{r results = "asis"}
+#
+# OLS model
+#
 six_months <- filter(seed011204, !is.na(treatment))
 
 # column 1
@@ -297,11 +309,15 @@ stargazer::stargazer(lm1, lm2, lm3, lm4,
 
 ```
 
-M-estimation leads to results that look very different than [@Ashraf2006]. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-In all four cases the estimated intercept is negative and the coefficients, while positive, are smaller in magnitude than the OLS model. That means the conditional means for the commitment savings group, the marketing control group, and the control group are all negative. That said, the estimated intent-to-treat effect is statistically significantly different in three of the four specifications. However, the treatment effects are very small. 
+
 
 ```{r results = "asis"}
+#
+# M-Estimation model
+#
+
 # column 1
 m_model1 <- rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = six_months)
 
@@ -325,9 +341,13 @@ stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
 
 ```
 
-Robust and rank-based regression leads to results that look very different than [@Ashraf2006]. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
 ```{r results = "asis"}
+#
+# Robust and rank-based regression
+#
+
 # column 1
 rank_model1 <- rfit(balchange ~ treatment + marketing, data = six_months)
 
@@ -363,13 +383,17 @@ stargazer::stargazer(
 
 M-estimation and robust rank-based regression lead to very different results than ordinary least squares. 
 
-The weight of the positive outliers leads to a positive estimated intercept and larger estimated coefficients for the treatments in the OLS model. The other two models, which are more robust to outliers, have negative estimated intercepts and estimated coefficients for the treatments that are much closer to zero. 
+The weight of the positive outliers leads to a positive estimated intercept and larger estimated coefficients for the treatments in the OLS model. The other two models, which are more robust to outliers, have negative estimated intercepts and estimated coefficients for the treatments that are much closer to zero. For M-estimation and robust ranked based regression, the estimated intercepts are negative and the coefficients, while positive, are smaller in magnitude than the OLS model. That means the conditional means for the commitment savings group, the marketing control group, and the control group are all negative.
 
 The skewed distribution and outliers lead to dramatically larger standard errors and confidence intervals for the OLS model than the two models that are robust to outliers. Interestingly, this means that more coefficients are statistically significant with M-estimation and robust rank-based regression than with OLS regression even though the effect sizes are much smaller. While the intent-to-treat effect is statistically significantly different than zero, the effect sizes are so small that the practical effect is 
 
 The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
 
 ```{r}
+#
+# Visualize column (3)
+#
+
 lm3 <- lm(balchange ~ treatment + marketing, data = treated) %>%
   coeftest(vcov = vcovHC(., type="HC1"))
 
@@ -413,6 +437,10 @@ coefficients %>%
 The following data visualization compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
 
 ```{r}
+#
+# Visualize column (4)
+#
+
 lm4 <- lm(balchange ~ treatment, 
    data = filter(treated, group %in% c("M", "T"))) %>%
   coeftest(vcov = vcovHC(., type="HC1"))
