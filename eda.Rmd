@@ -20,6 +20,9 @@ options(scipen = 999)
 library(tidyverse)
 library(haven)
 library(quantreg)
+library(sandwich)
+library(lmtest)
+
 ```
 
 ```{r}
@@ -67,10 +70,6 @@ treated <- treated %>%
            )
   )
   
-treated %>%
-  group_by(group) %>%
-  summarize(n(), mean(totbal), sd(totbal))
-
 ```
 
 ## Remake Table II
@@ -119,6 +118,33 @@ summary(lm(hyper_mon_new2 ~ factor(group) - 1, data = treated))
 summary(aov(hyper_mon_new2 ~ factor(group), data = treated))
 
 count(treated, group)
+```
+
+## Remake Table VI
+
+```{r}
+six_months <- filter(seed011204, !is.na(treatment))
+
+# column 1
+lm(balchange ~ treatment + marketing, data = six_months) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 2
+lm(balchange ~ treatment, 
+   data = filter(six_months, group %in% c("M", "T"))) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 3
+lm(balchange ~ treatment + marketing, data = treated) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 4
+boom <- lm(balchange ~ treatment, 
+   data = filter(treated, group %in% c("M", "T"))) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+# The R^2 values are really zero. And the p-values for the F statistics are large
+
 ```
 
 ## Remake Table VII
