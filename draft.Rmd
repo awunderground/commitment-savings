@@ -22,6 +22,62 @@ knitr::opts_chunk$set(fig.height = 4)
 
 options(knitr.kable.NA = "")
 options(scipen = 999)
+
+```
+
+```{r r-setup}
+library(tidyverse)
+library(haven)
+
+```
+
+```{r load-data}
+seed011204 <-read_stata("dataverse_files/seedanalysis_011204_1.dta")
+
+seed080404 <- read_stata("dataverse_files/seedanalysis_080404_1.dta")
+
+combined <- read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
+
+```
+
+```{r data-cleaning}
+# this cleaning is based on Stata scripts from the original Authors' code
+
+combined <- combined  %>%
+  # turn dollars into hundreds of dollars
+  mutate(
+    totbal = totbal / 100,
+    newtotbal = newtotbal / 100
+  ) %>%
+  # fix population variable
+  mutate(pop = as.numeric(str_replace(pop, ",", ""))) %>%
+  # create bank penetration variable%>%
+  mutate(brgy_penetration = no_clients / pop)
+  
+combined <- combined %>%
+  # calculate the mean and sd for each bank
+  # the Stata code is a little cyptic
+  group_by(brgy_penetration) %>%
+  mutate(sd_totbal = sd(totbal),
+         mean_totbal = mean(totbal)) %>%
+  ungroup()
+
+combined <- combined %>%
+  # create control dummy
+  mutate(control = as.numeric(group == "C")) %>%
+  # create distance to bank variable
+  mutate(dist_GB = 
+           case_when(
+             butuan == 1 ~ dbutuan,
+             ampayon == 1 ~ dampayon
+           )
+  )
+
+# create a set with the 1777 observations that are in the SEED, 
+# marketing treatment, or control group
+treated <- combined %>%
+  filter(!is.na(treatment))
+
 ```
 
 # Commitment Savings Devices
