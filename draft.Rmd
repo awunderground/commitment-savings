@@ -38,20 +38,20 @@ library(lmtest)
 ```
 
 ```{r load-data}
-seed011204 <-read_stata("dataverse_files/seedanalysis_011204_1.dta")
+seed011204 =read_stata("dataverse_files/seedanalysis_011204_1.dta")
 
-seed080404 <- read_stata("dataverse_files/seedanalysis_080404_1.dta")
+seed080404 = read_stata("dataverse_files/seedanalysis_080404_1.dta")
 
-combined <- read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
+combined = read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
 
-six_months <- filter(seed011204, !is.na(treatment))
+six_months = filter(seed011204, !is.na(treatment))
 
 ```
 
 ```{r data-cleaning}
 # this cleaning is based on Stata scripts from the original Authors' code
 
-combined <- combined  %>%
+combined = combined  %>%
   # turn dollars into hundreds of dollars
   mutate(
     totbal = totbal / 100,
@@ -61,8 +61,8 @@ combined <- combined  %>%
   mutate(pop = as.numeric(str_replace(pop, ",", ""))) %>%
   # create bank penetration variable%>%
   mutate(brgy_penetration = no_clients / pop)
-  
-combined <- combined %>%
+
+combined = combined %>%
   # calculate the mean and sd for each bank
   # the Stata code is a little cryptic
   group_by(brgy_penetration) %>%
@@ -70,7 +70,7 @@ combined <- combined %>%
          mean_totbal = mean(totbal)) %>%
   ungroup()
 
-combined <- combined %>%
+combined = combined %>%
   # create control dummy
   mutate(control = as.numeric(group == "C")) %>%
   # create distance to bank variable
@@ -83,7 +83,7 @@ combined <- combined %>%
 
 # create a set with the 1777 observations that are in the SEED, 
 # marketing treatment, or control group
-treated <- combined %>%
+treated = combined %>%
   filter(!is.na(treatment))
 
 ```
@@ -120,7 +120,7 @@ The dependent variable, change in savings account balance, is highly right-skewe
 #
 # Create a plot to show the skew of balchange
 #
-skewa <- six_months %>%
+skewa = six_months %>%
   ggplot(aes(balchange)) +
   geom_density() +
   scale_x_continuous(labels = scales::comma) +
@@ -131,7 +131,7 @@ skewa <- six_months %>%
        y = NULL) +
   theme_minimal()
 
-skewb <- treated %>%
+skewb = treated %>%
   ggplot(aes(balchange)) +
   geom_density() +
   scale_x_continuous(labels = scales::comma) +
@@ -154,7 +154,7 @@ The SEED treatment, the marketing control, and the full control all have outlier
 #
 # Create a plot to show the skew of balchange by group
 #
-skewa <- six_months %>%
+skewa = six_months %>%
   ggplot(aes(balchange, y = group, color = group)) +
   geom_point(alpha = 0.2) +
   scale_x_continuous(labels = scales::comma) +
@@ -165,7 +165,7 @@ skewa <- six_months %>%
   theme_minimal() +
   guides(color = FALSE)
 
-skewb <- treated %>%
+skewb = treated %>%
   ggplot(aes(balchange, y = group, color = group)) +
   geom_point(alpha = 0.2) +
   scale_x_continuous(labels = scales::comma) +
@@ -192,8 +192,8 @@ The authors state:
 
 To deal with outliers, the authors constructed two binary outcome variables: 
 \begin{itemize}
-  \item 1 if the savings is positive and 0 otherwise. 
-  \item 1 if the savings increases by more than 20 percent and 0 otherwise. 
+\item 1 if the savings is positive and 0 otherwise. 
+\item 1 if the savings increases by more than 20 percent and 0 otherwise. 
 \end{itemize}
 
 The authors then estimate probit models on the twelve month data and find statistically significant treatment effects. 
@@ -204,7 +204,7 @@ We first explore their constructed variables and then we offer an alternative ap
 #
 # Count the types of change in balchange
 # 
-treated <-  treated %>%
+treated =  treated %>%
   mutate(change =
            case_when(
              balchange > 0 ~ "Increase",
@@ -279,25 +279,25 @@ We begin by recreating half of Table VI from [@Ashraf2006]. All models are estim
 #
 # OLS model
 #
-six_months <- filter(seed011204, !is.na(treatment))
+six_months = filter(seed011204, !is.na(treatment))
 
 # column 1
-lm1 <- lm(balchange ~ treatment + marketing, data = six_months) 
-se1 <- lm1 %>% coeftest(vcov = vcovHC(., type="HC1"))
+lm1 = lm(balchange ~ treatment + marketing, data = six_months) 
+se1 = lm1 %>% coeftest(vcov = vcovHC(., type="HC1"))
 
 # column 2
-lm2 <- lm(balchange ~ treatment, 
-          data = filter(six_months, group %in% c("M", "T"))) 
-se2 <- lm2 %>% coeftest(vcov = vcovHC(., type="HC1"))
+lm2 = lm(balchange ~ treatment, 
+         data = filter(six_months, group %in% c("M", "T"))) 
+se2 = lm2 %>% coeftest(vcov = vcovHC(., type="HC1"))
 
 # column 3
-lm3 <- lm(balchange ~ treatment + marketing, data = treated) 
-se3 <- lm3 %>% coeftest(vcov = vcovHC(., type="HC1"))
+lm3 = lm(balchange ~ treatment + marketing, data = treated) 
+se3 = lm3 %>% coeftest(vcov = vcovHC(., type="HC1"))
 
 # column 4
-lm4 <- lm(balchange ~ treatment, 
-          data = filter(treated, group %in% c("M", "T"))) 
-se4 <- lm4 %>% coeftest(vcov = vcovHC(., type="HC1"))
+lm4 = lm(balchange ~ treatment, 
+         data = filter(treated, group %in% c("M", "T"))) 
+se4 = lm4 %>% coeftest(vcov = vcovHC(., type="HC1"))
 
 stargazer::stargazer(lm1, lm2, lm3, lm4,
                      se = list(se1[, 2], se2[, 2], se3[, 2], se4[, 2]),
@@ -319,18 +319,18 @@ We estimate identical specifications to [@Ashraf2006] using M-estimation. Column
 #
 
 # column 1
-m_model1 <- rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = six_months)
+m_model1 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = six_months)
 
 # column 2
-m_model2 <- rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
-    data = filter(six_months, group %in% c("M", "T")))
+m_model2 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+               data = filter(six_months, group %in% c("M", "T")))
 
 # column 3
-m_model3 <- rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = treated)
+m_model3 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = treated)
 
 # column 4
-m_model4 <- rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
-    data = filter(treated, group %in% c("M", "T")))
+m_model4 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+               data = filter(treated, group %in% c("M", "T")))
 
 stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
                      header = FALSE,
@@ -349,18 +349,18 @@ We estimate identical specifications to [@Ashraf2006] using robust and rank-base
 #
 
 # column 1
-rank_model1 <- rfit(balchange ~ treatment + marketing, data = six_months)
+rank_model1 = rfit(balchange ~ treatment + marketing, data = six_months)
 
 # column 2
-rank_model2 <- rfit(balchange ~ treatment, 
-     data = filter(six_months, group %in% c("M", "T")))
+rank_model2 = rfit(balchange ~ treatment, 
+                   data = filter(six_months, group %in% c("M", "T")))
 
 # column 3
-rank_model3 <- rfit(balchange ~ treatment + marketing, data = treated)
+rank_model3 = rfit(balchange ~ treatment + marketing, data = treated)
 
 # column 4
-rank_model4 <- rfit(balchange ~ treatment, 
-     data = filter(treated, group %in% c("M", "T")))
+rank_model4 = rfit(balchange ~ treatment, 
+                   data = filter(treated, group %in% c("M", "T")))
 
 
 stargazer::stargazer(
@@ -394,10 +394,10 @@ The following data  compares the estimated coefficients and confidence intervals
 # Visualize column (3)
 #
 
-lm3 <- lm(balchange ~ treatment + marketing, data = treated) %>%
+lm3 = lm(balchange ~ treatment + marketing, data = treated) %>%
   coeftest(vcov = vcovHC(., type="HC1"))
 
-coefficients <- bind_rows(
+coefficients = bind_rows(
   tibble(
     model = "OLS Model",
     tidy(lm3)
@@ -441,11 +441,11 @@ The following data visualization compares the estimated coefficients and confide
 # Visualize column (4)
 #
 
-lm4 <- lm(balchange ~ treatment, 
-   data = filter(treated, group %in% c("M", "T"))) %>%
+lm4 = lm(balchange ~ treatment, 
+         data = filter(treated, group %in% c("M", "T"))) %>%
   coeftest(vcov = vcovHC(., type="HC1"))
 
-coefficients <- bind_rows(
+coefficients = bind_rows(
   tibble(
     model = "OLS Model",
     tidy(lm4)
