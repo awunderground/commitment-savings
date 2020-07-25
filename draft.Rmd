@@ -215,6 +215,8 @@ treated =  treated %>%
   mutate(change = factor(change, levels = c("Decrease", "No Change", "Increase")))
 
 count(treated, change) %>%
+  pivot_wider(names_from = change,
+              values_from = n) %>%
   knitr::kable(caption = "Change in Balance After Twelve Months")
 
 ```
@@ -223,6 +225,8 @@ Importantly, inside the treatment group, more balances decreased than increased 
 
 ```{r}
 count(treated, group, change) %>%
+  pivot_wider(names_from = change,
+              values_from = n) %>%
   knitr::kable(caption = "Change in Balance After Twelve Months by Treatment Group")
 
 ```
@@ -231,9 +235,17 @@ The story is even more dramatic for the 20 percent increase outcome variable.
 
 ```{r}
 count(treated, frac_change_20) %>%
+  pivot_wider(names_from = frac_change_20,
+              values_from = n) %>%
+  rename(`20%+ Increase` = `1`,
+         `<20% Increase` = `0`) %>%
   knitr::kable(caption = "20+% Change in Balance After Twelve Months")
 
 count(treated, group, frac_change_20) %>%
+  pivot_wider(names_from = frac_change_20,
+              values_from = n) %>%  
+  rename(`20%+ Increase` = `1`,
+         `<20% Increase` = `0`) %>%  
   knitr::kable(caption = "20+% Change in Balance After Twelve Months")
 
 ```
@@ -311,8 +323,6 @@ stargazer::stargazer(lm1, lm2, lm3, lm4,
 
 We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-
-
 ```{r results = "asis"}
 #
 # M-Estimation model
@@ -385,7 +395,7 @@ M-estimation and robust rank-based regression lead to very different results tha
 
 The weight of the positive outliers leads to a positive estimated intercept and larger estimated coefficients for the treatments in the OLS model. The other two models, which are more robust to outliers, have negative estimated intercepts and estimated coefficients for the treatments that are much closer to zero. For M-estimation and robust ranked based regression, the estimated intercepts are negative and the coefficients, while positive, are smaller in magnitude than the OLS model. That means the conditional means for the commitment savings group, the marketing control group, and the control group are all negative.
 
-The skewed distribution and outliers lead to dramatically larger standard errors and confidence intervals for the OLS model than the two models that are robust to outliers. Interestingly, this means that more coefficients are statistically significant with M-estimation and robust rank-based regression than with OLS regression even though the effect sizes are much smaller. While the intent-to-treat effect is statistically significantly different than zero, the effect sizes are so small that the practical effect is 
+The skewed distribution and outliers lead to dramatically larger standard errors and confidence intervals for the OLS model than the two models that are robust to outliers. Interestingly, this means that more coefficients are statistically significant with M-estimation and robust rank-based regression than with OLS regression even though the effect sizes are much smaller. While the intent-to-treat effect is statistically significantly different than zero, the effect sizes are so small that the practical significance is limited. 
 
 The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
 
