@@ -27,7 +27,13 @@ options(scipen = 999)
 
 ```{r r-setup}
 library(tidyverse)
-library(haven)
+library(haven) # reading Stata data
+library(MASS) # M-estimation
+library(Rfit) # rank-based regression
+library(patchwork)
+library(broom)
+library(sandwich)
+library(lmtest)
 
 ```
 
@@ -38,12 +44,13 @@ seed080404 <- read_stata("dataverse_files/seedanalysis_080404.dta")
 
 combined <- read_stata("dataverse_files/seedanalysis_011204_080404.dta")
 
+
 ```
 
 ```{r data-cleaning}
 # this cleaning is based on Stata scripts from the original Authors' code
 
-combined <- combined  %>%
+combined = combined  %>%
   # turn dollars into hundreds of dollars
   mutate(
     totbal = totbal / 100,
@@ -53,16 +60,16 @@ combined <- combined  %>%
   mutate(pop = as.numeric(str_replace(pop, ",", ""))) %>%
   # create bank penetration variable%>%
   mutate(brgy_penetration = no_clients / pop)
-  
-combined <- combined %>%
+
+combined = combined %>%
   # calculate the mean and sd for each bank
-  # the Stata code is a little cyptic
+  # the Stata code is a little cryptic
   group_by(brgy_penetration) %>%
   mutate(sd_totbal = sd(totbal),
          mean_totbal = mean(totbal)) %>%
   ungroup()
 
-combined <- combined %>%
+combined = combined %>%
   # create control dummy
   mutate(control = as.numeric(group == "C")) %>%
   # create distance to bank variable
@@ -75,7 +82,7 @@ combined <- combined %>%
 
 # create a set with the 1777 observations that are in the SEED, 
 # marketing treatment, or control group
-treated <- combined %>%
+treated = combined %>%
   filter(!is.na(treatment))
 
 ```
@@ -115,13 +122,13 @@ $H_a: \theta_d >0$
 
 We will be used a Signed-Rank test given the significant outliers in the data.
 
-The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with $E(SR_+) = \frac{n(n+1)}{4} = 177451.5$ and $\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=299005778$. [@Higgins]
+The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with $E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and $\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=299005778$. [@Higgins]
 
 
 ### 3.2 Results
 
 ```{r, echo=FALSE}
-wilcox.test(seed_accounts$totbal, seed_accounts$balchange,alternative = "greater", paired=TRUE)
+wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
 
 
 ```
@@ -142,11 +149,385 @@ As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the n
 
 ## 5. Robust Regression
 
+[@Ashraf2006] estimate regression models with change in savings account balance as the dependent variable and the different treatments and controls as independent variables. This is to estimate the intent-to-treat effect (ITT) of the commitment savings account--that is the effect on account balances of being offered the commitment savings account versus not being offered the account or being offered the marketing treatment instead. 
+
+The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
+
+```{r}
+#
+# Create a plot to show the skew of balchange
+#
+skewa = six_months %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal()
+
+skewb = treated %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
+
+```{r}
+#
+# Create a plot to show the skew of balchange by group
+#
+skewa = six_months %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewb = treated %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+# measure of outliers from 611?
+
+```
+
+[@Ashraf2006] found only modest evidence for a statistically significant intent-to-treat (ITT) effect for the commitment savings accounts using ordinary least squares regression (OLS). Furthermore, they found that the differential effect of being offered the commitment savings product beyond being offered only a marketing treatment was indistinguishable from zero. 
+
+The authors state: 
+
+> The statistical insignificance masks the heterogeneity in the impact of the commitment treatment relative to the marketing treatment throughout the distribution of the change in balance variable. Using measures that minimize the influence of outliers, e.g., the probability of a savings increase and the quantile regressions below, we find a significant commitment-treatment effect relative to the marketing treatment.
+
+To deal with outliers, the authors constructed two binary outcome variables: 
+\begin{itemize}
+\item 1 if the savings is positive and 0 otherwise. 
+\item 1 if the savings increases by more than 20 percent and 0 otherwise. 
+\end{itemize}
+
+The authors then estimate probit models on the twelve month data and find statistically significant treatment effects. 
+
+We first explore their constructed variables and then we offer an alternative approach. A closer look at the data show that many balances decreased or remained the same and only a fraction of balances increased after twelve months.
+
+```{r}
+#
+# Count the types of change in balchange
+# 
+treated =  treated %>%
+  mutate(change =
+           case_when(
+             balchange > 0 ~ "Increase",
+             balchange == 0 ~ "No Change",
+             balchange < 0 ~ "Decrease"
+           )
+  ) %>%
+  mutate(change = factor(change, levels = c("Decrease", "No Change", "Increase")))
+
+count(treated, change) %>%
+  pivot_wider(names_from = change,
+              values_from = n) %>%
+  knitr::kable(caption = "Change in Balance After Twelve Months")
+
+```
+
+Importantly, inside the treatment group, more balances decreased than increased in the 12 month window. 
+
+```{r}
+count(treated, group, change) %>%
+  pivot_wider(names_from = change,
+              values_from = n) %>%
+  knitr::kable(caption = "Change in Balance After Twelve Months by Treatment Group")
+
+```
+
+The story is even more dramatic for the 20 percent increase outcome variable. 
+
+```{r}
+count(treated, frac_change_20) %>%
+  pivot_wider(names_from = frac_change_20,
+              values_from = n) %>%
+  rename(`20%+ Increase` = `1`,
+         `<20% Increase` = `0`) %>%
+  knitr::kable(caption = "20+% Change in Balance After Twelve Months")
+
+count(treated, group, frac_change_20) %>%
+  pivot_wider(names_from = frac_change_20,
+              values_from = n) %>%  
+  rename(`20%+ Increase` = `1`,
+         `<20% Increase` = `0`) %>%  
+  knitr::kable(caption = "20+% Change in Balance After Twelve Months")
+
+```
+
 ### 5.1 Methods
+
+We offer an alternative approach to dealing with outliers from the nonparametric statistical literature. 
+
+Ordinary least squares regression estimates coefficients, $\vec{\hat{\beta}}$, that minimize the sum of squared residuals 
+
+$$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N (Y_i - \hat{Y_i})^2$$
+
+The square in this optimization gives extra weight to outliers. In this case, all of the outliers are positive and the squared term will result in an estimated intercept and estimated coefficients that are further from zero in the positive direction. 
+
+Regression with M-estimation estimates coefficients, $\vec{\hat{\beta}}$, that minimize standardized residuals where outliers receive less weight
+
+todo(aaron): citation
+
+$$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N \rho\left(\frac{Y_i - \hat{Y_i}}{\hat{\sigma}_i}\right)$$
+
+Where $\rho(x)$ is a symmetric function with a unique minimum at $x = 0$ and $\hat{\sigma}$ is an estimate of the standard deviation of the residuals. We use Tukey's bisquare function for $\rho$ such that 
+
+$$\rho(x) = \begin{cases}
+\left(\frac{x}{c}\right)^6  - 3\left(\frac{x}{c}\right)^4 + 3\left(\frac{x}{c}\right)^2,  &  |x| \leq c\\
+1, & |x| > c
+\end{cases}$$
+
+with $c = 4.685$. 
+
+Robust and rank-based regression addresses the issues of OLS outlined above by estimating coefficients, $\vec{\hat{\beta}}$, that minimize the sum of errors weighted by rank scores. 
+
+The Jaeckel-Hettmansperger-McKean (JHM) estimates of the coefficients $\beta_1, \beta_2, ..., \beta_k$ minimizes
+
+$$D_j(\mathbf{Y} - \mathbf{X}\vec{\beta}) = \frac{\sqrt{12}}{(n + 1)}\sum_{i = 1}^n \left[R_i(\vec{\beta}) - \frac{n + 1}{2})\right](Y_i - \mathbf{x'}_i\vec{\beta})$$
+
+Like [@Ashraf2006], we estimate the intent-to-treat (ITT) effect with the change in balance as the dependent variable and the different treatments as the independent variables. Only we use M-Estimation and Robust and rank-based regression. 
 
 ### 5.2 Results
 
+We begin by recreating half of Table VI from [@Ashraf2006]. All models are estimated using ordinary least squares regression and the standard errors are HC1 heteroskedasticity-robust standard errors [@MacKinnon1985].
+
+```{r results = "asis"}
+#
+# OLS model
+#
+six_months = filter(seed011204, !is.na(treatment))
+
+# column 1
+lm1 = lm(balchange ~ treatment + marketing, data = six_months) 
+se1 = lm1 %>% coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 2
+lm2 = lm(balchange ~ treatment, 
+         data = filter(six_months, group %in% c("M", "T"))) 
+se2 = lm2 %>% coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 3
+lm3 = lm(balchange ~ treatment + marketing, data = treated) 
+se3 = lm3 %>% coeftest(vcov = vcovHC(., type="HC1"))
+
+# column 4
+lm4 = lm(balchange ~ treatment, 
+         data = filter(treated, group %in% c("M", "T"))) 
+se4 = lm4 %>% coeftest(vcov = vcovHC(., type="HC1"))
+
+stargazer::stargazer(lm1, lm2, lm3, lm4,
+                     se = list(se1[, 2], se2[, 2], se3[, 2], se4[, 2]),
+                     header = FALSE,
+                     column.separate = c(2, 2),
+                     column.labels = c("6 months", "12 months"), 
+                     omit.stat = c("adj.rsq", "rsq", "f", "ser"),
+                     title = "OLS Model")
+
+```
+
+We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+
+```{r results = "asis"}
+#
+# M-Estimation model
+#
+
+# column 1
+m_model1 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = six_months)
+
+# column 2
+m_model2 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+               data = filter(six_months, group %in% c("M", "T")))
+
+# column 3
+m_model3 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = treated)
+
+# column 4
+m_model4 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+               data = filter(treated, group %in% c("M", "T")))
+
+stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
+                     header = FALSE,
+                     column.separate = c(2, 2),
+                     column.labels = c("6 months", "12 months"), 
+                     omit.stat = "ser",
+                     title = "M-Estimation Model")
+
+```
+
+We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+
+```{r results = "asis"}
+#
+# Robust and rank-based regression
+#
+
+# column 1
+rank_model1 = rfit(balchange ~ treatment + marketing, data = six_months)
+
+# column 2
+rank_model2 = rfit(balchange ~ treatment, 
+                   data = filter(six_months, group %in% c("M", "T")))
+
+# column 3
+rank_model3 = rfit(balchange ~ treatment + marketing, data = treated)
+
+# column 4
+rank_model4 = rfit(balchange ~ treatment, 
+                   data = filter(treated, group %in% c("M", "T")))
+
+
+stargazer::stargazer(
+  m_model1, m_model2, m_model3, m_model4,
+  coef = list(coef(rank_model1), coef(rank_model2), coef(rank_model3), coef(rank_model4)),
+  se = list(coef(summary(rank_model1))[, 2],
+            coef(summary(rank_model2))[, 2],
+            coef(summary(rank_model3))[, 2],
+            coef(summary(rank_model4))[, 2]),
+  header = FALSE,
+  column.separate = c(2, 2),
+  column.labels = c("6 months", "12 months"), 
+  omit.stat = c("adj.rsq", "rsq", "f", "ser"),
+  title = "Rank-based robust regression model"
+)
+
+```
+
 ### 5.3 Discussion of Results
+
+M-estimation and robust rank-based regression lead to very different results than ordinary least squares. 
+
+The weight of the positive outliers leads to a positive estimated intercept and larger estimated coefficients for the treatments in the OLS model. The other two models, which are more robust to outliers, have negative estimated intercepts and estimated coefficients for the treatments that are much closer to zero. For M-estimation and robust ranked based regression, the estimated intercepts are negative and the coefficients, while positive, are smaller in magnitude than the OLS model. That means the conditional means for the commitment savings group, the marketing control group, and the control group are all negative.
+
+The skewed distribution and outliers lead to dramatically larger standard errors and confidence intervals for the OLS model than the two models that are robust to outliers. Interestingly, this means that more coefficients are statistically significant with M-estimation and robust rank-based regression than with OLS regression even though the effect sizes are much smaller. While the intent-to-treat effect is statistically significantly different than zero, the effect sizes are so small that the practical significance is limited. 
+
+The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
+
+```{r}
+#
+# Visualize column (3)
+#
+
+lm3 = lm(balchange ~ treatment + marketing, data = treated) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+coefficients = bind_rows(
+  tibble(
+    model = "OLS Model",
+    tidy(lm3)
+  ),
+  tibble(
+    model = "M Model",
+    tidy(m_model3)
+  ),
+  tibble(
+    model = "Rank-Based\nModel",
+    term = c("(Intercept)", "treatment", "marketing"),
+    estimate = rank_model3$coefficients,
+    std.error = coef(summary(rank_model3))[, 2]
+  )
+)
+
+coefficients %>%
+  mutate(conf.low = estimate - qnorm(0.025) * std.error,
+         conf.high = estimate + qnorm(0.025) * std.error) %>%
+  mutate(model = factor(model, levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
+  ggplot(aes(x = estimate, 
+             y = model,
+             xmin = conf.low,
+             xmax = conf.high,
+             color = model)) +
+  geom_pointrange() +
+  geom_vline(xintercept = 0, alpha = 0.5) +
+  facet_wrap(~term, scales = "free_x") +
+  labs(title = "Model Choice Affects Estimated Coefficients",
+       x = "Estimated Beta and 95% Confidence Interval",
+       y = NULL) +
+  theme_bw() +
+  theme(legend.position = "top")
+
+```
+
+The following data visualization compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
+
+```{r}
+#
+# Visualize column (4)
+#
+
+lm4 = lm(balchange ~ treatment, 
+         data = filter(treated, group %in% c("M", "T"))) %>%
+  coeftest(vcov = vcovHC(., type="HC1"))
+
+coefficients = bind_rows(
+  tibble(
+    model = "OLS Model",
+    tidy(lm4)
+  ),
+  tibble(
+    model = "M Model",
+    tidy(m_model4)
+  ),
+  tibble(
+    model = "Rank-Based\nModel",
+    term = c("(Intercept)", "treatment"),
+    estimate = rank_model4$coefficients,
+    std.error = coef(summary(rank_model4))[, 2]
+  )
+)
+
+coefficients %>%
+  mutate(conf.low = estimate - qnorm(0.025) * std.error,
+         conf.high = estimate + qnorm(0.025) * std.error) %>%
+  mutate(model = factor(model, levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
+  ggplot(aes(x = estimate, 
+             y = model,
+             xmin = conf.low,
+             xmax = conf.high,
+             color = model)) +
+  geom_pointrange() +
+  geom_vline(xintercept = 0, alpha = 0.5) +
+  facet_wrap(~term, scales = "free_x") +
+  labs(title = "Model Choice Affects Estimated Coefficients",
+       x = "Estimated Beta and 95% Confidence Interval",
+       y = NULL) +
+  theme_bw() +
+  theme(legend.position = "top")
+
+```
 
 ## Conclusion
 
