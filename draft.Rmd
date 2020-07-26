@@ -34,6 +34,7 @@ library(patchwork)
 library(broom)
 library(sandwich)
 library(lmtest)
+library(NSM3)
 
 ```
 
@@ -149,7 +150,22 @@ As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the n
 
 ### 4.2 Results
 
+
+```{r k-sample JT test}
+
+seed_balchange = seed_accounts$balchange
+marketing_balchange = (treated %>% filter(marketing==1))$balchange
+control_balchange = (treated %>% filter(control==1, marketing==0))$balchange
+x = list(control_balchange, marketing_balchange, seed_balchange)
+pJCK(x, method="Monte Carlo")
+
+
+```
+
 ### 4.3 Discussion of Results
+
+
+A p-value of 0.0001 means that we reject the null hypothesis in favor of the alternate.
 
 ## 5. Robust Regression
 
