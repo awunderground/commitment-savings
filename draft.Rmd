@@ -38,11 +38,13 @@ library(lmtest)
 ```
 
 ```{r load-data}
-seed011204 <-read_stata("dataverse_files/seedanalysis_011204.dta")
+seed011204 = read_stata("dataverse_files/seedanalysis_011204.dta")
 
-seed080404 <- read_stata("dataverse_files/seedanalysis_080404.dta")
+seed080404 = read_stata("dataverse_files/seedanalysis_080404.dta")
 
-combined <- read_stata("dataverse_files/seedanalysis_011204_080404.dta")
+combined = read_stata("dataverse_files/seedanalysis_011204_080404.dta")
+
+six_months = filter(seed011204, !is.na(treatment))
 
 
 ```
@@ -93,7 +95,7 @@ treated = combined %>%
 
 ## 2. Summary of Data for Analysis
 
-```{r, }
+```{r}
 seed_accounts = treated %>% filter(treatment == 1)
 hist(seed_accounts$balchange,
      main="Histogram of balance changes for SEED accounts",
@@ -122,12 +124,14 @@ $H_a: \theta_d >0$
 
 We will be used a Signed-Rank test given the significant outliers in the data.
 
-The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with $E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and $\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=299005778$. [@Higgins]
+The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with 
+$E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and 
+$\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=`r (842 * (842 + 1) * (2 * 842 + 1) / 24)`$. [@Higgins]
 
 
 ### 3.2 Results
 
-```{r, echo=FALSE}
+```{r}
 wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
 
 
