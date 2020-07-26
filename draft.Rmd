@@ -38,13 +38,14 @@ library(lmtest)
 ```
 
 ```{r load-data}
-seed011204 =read_stata("dataverse_files/seedanalysis_011204_1.dta")
+seed011204 = read_stata("dataverse_files/seedanalysis_011204.dta")
 
-seed080404 = read_stata("dataverse_files/seedanalysis_080404_1.dta")
+seed080404 = read_stata("dataverse_files/seedanalysis_080404.dta")
 
-combined = read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
+combined = read_stata("dataverse_files/seedanalysis_011204_080404.dta")
 
 six_months = filter(seed011204, !is.na(treatment))
+
 
 ```
 
@@ -94,13 +95,53 @@ treated = combined %>%
 
 ## 2. Summary of Data for Analysis
 
+```{r}
+seed_accounts = treated %>% filter(treatment == 1)
+hist(seed_accounts$balchange,
+     main="Histogram of balance changes for SEED accounts",
+     xlab="Balance Change")
+
+filtered_seeds = seed_accounts %>% filter(balchange <=10000)
+hist(filtered_seeds$balchange,
+     main="Outliers removed balance changes for SEED accounts",
+     xlab="Balance Change")
+
+print("Summary statistics for Seed account balance changes")
+summary(seed_accounts$balchange)
+```
+
 ## 3. Paired Comparisons
 
 ### 3.1 Methods
 
+We will use a one sided Wilcoxon Signed-Rank Test at a significance of $\alpha=0.05$ to test if the the savings of customers with SEED accounts increased.
+
+We will be testing the following hypothesis where $\theta_d$ is the mean of the differences in savings for customers with SEED accounts from before and after the trial
+
+$H_0: \theta_d = 0$
+
+$H_a: \theta_d >0$
+
+We will be used a Signed-Rank test given the significant outliers in the data.
+
+The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with 
+$E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and 
+$\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=`r (842 * (842 + 1) * (2 * 842 + 1) / 24)`$. [@Higgins]
+
+
 ### 3.2 Results
 
+```{r}
+wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
+
+
+```
+
+
 ### 3.3 Discussion of Results
+
+As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the null hypothesis in favor of the alternate hypothesis. We conclude that customers who had SEED accounts saw an increase in savings over the duration of the trial. It is worth noting that we have not yet shown that the SEED accounts are more effective savings accounts than other methods, just that customers were able to save with them.
+
 
 ## 4. Two-sample Test and K-Sample Test
 
