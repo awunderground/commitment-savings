@@ -38,11 +38,11 @@ library(lmtest)
 ```
 
 ```{r load-data}
-seed011204 =read_stata("dataverse_files/seedanalysis_011204_1.dta")
+seed011204 =read_stata("dataverse_files/seedanalysis_011204.dta")
 
-seed080404 = read_stata("dataverse_files/seedanalysis_080404_1.dta")
+seed080404 = read_stata("dataverse_files/seedanalysis_080404.dta")
 
-combined = read_stata("dataverse_files/seedanalysis_011204_080404_1.dta")
+combined = read_stata("dataverse_files/seedanalysis_011204_080404.dta")
 
 six_months = filter(seed011204, !is.na(treatment))
 
@@ -90,9 +90,33 @@ treated = combined %>%
 
 # Commitment Savings Devices
 
+### Luke Botti and Aaron R. Williams
+
 ## 1. Introduction
 
+Personal savings can be a financial buffer during emergencies and economic downturns, are an important catalyst to large purchases like appliances and investments in housing and education, and are essential to maintaining consumption in retirement. Accordingly, promoting and increasing personal savings is an important policy goal for governments, employers, and communities. 
+
+One possible intervention is a commitment savings account, which when opened is a savings account that restricts the account holder's access to the balance until a savings goal is achieved, a fixed period of time has passed, or an emergency occurs. The accounts have no other benefits like bonuses or preferred interest rates. 
+
+[@Ashraf2006] implemented a randomized control trial (RCT) to 1. see if individuals offered the account open the accounts, and if so, what characteristics are associated with opening an account and 2. if individuals save more as a result of opening the account. 
+
+The authors find that individuals open the accounts when offered. They also find that women are statistically significantly more likely to open accounts if they have hyperbolic preferences. They did not find a significant result for men. People have hyperbolic preferences if they exhibit a high discount rate in the immediate future and a lower discount rate further in the future. Accordingly, these individuals can improve their welfare with a commitment savings device. 
+
+The authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
+
+We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
+
+We find... todo(aaron): add a paragraph summarizing our conclusions
+
 ## 2. Summary of Data for Analysis
+
+The data and code for [@Ashraf2006] are available on the Harvard Dataverse [@Data]. The repository contains Stata `.do` files for all models and tables included in the authors' paper. The repository contains three data sets. 
+
+The first contains information after six months. The second contains information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published table matches the published table. 
+
+todo(aaron): include a brief visual summary of the data
+
+Number of observations
 
 ## 3. Paired Comparisons
 
@@ -111,6 +135,10 @@ treated = combined %>%
 ### 4.3 Discussion of Results
 
 ## 5. Robust Regression
+
+log; however, non-positive values
+
+
 
 [@Ashraf2006] estimate regression models with change in savings account balance as the dependent variable and the different treatments and controls as independent variables. This is to estimate the intent-to-treat effect (ITT) of the commitment savings account--that is the effect on account balances of being offered the commitment savings account versus not being offered the account or being offered the marketing treatment instead. 
 
