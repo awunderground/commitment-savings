@@ -97,8 +97,10 @@ treated = combined %>%
 ## 2. Summary of Data for Analysis
 
 ```{r}
-seed_accounts = treated %>% filter(treatment == 1)
-nonseed = treated %>% filter(treatment == 0)
+seed_accounts = treated %>% 
+  filter(treatment == 1)
+nonseed = treated %>% 
+  filter(treatment == 0)
 hist(seed_accounts$balchange,
      main="Histogram of balance changes for SEED accounts",
      xlab="Balance Change")
@@ -124,7 +126,7 @@ hist(filtered_nonseeds$balchange)
 
 We will use a one sided Wilcoxon Signed-Rank Test at a significance of $\alpha=0.05$ to test if the the savings of customers with SEED accounts increased.
 
-We will be testing the following hypothesis where $\theta_d$ is the mean of the differences in savings for customers with SEED accounts from before and after the trial
+We will be testing the following hypothesis where $\theta_d$ is the median of the differences in savings for customers with SEED accounts from before and after the trial
 
 $H_0: \theta_d = 0$
 
@@ -135,6 +137,12 @@ We will be used a Signed-Rank test given the significant outliers in the data.
 The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values of the paired differences. The ranks are then signed positive or negative based on whether or not the corresponding differences are positive or negative. The test statistic is the sum of the positive ranks. As we have a large number of samples $(n=842)$ the test statistic takes on an approximately normal distribution with 
 $E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and 
 $\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=`r (842 * (842 + 1) * (2 * 842 + 1) / 24)`$. [@Higgins]
+
+The Wilcoxon Signed-Rank Test requires three assumptions:
+
+1. The data is paired and comes from the same population
+2. Each pair is chosen randomly and independently
+3. The data is continuous.
 
 
 ### 3.2 Results
@@ -174,7 +182,7 @@ We will conduct this test at a significance level of $\alpha=0.05$ with the foll
 
 $H_0: \theta_x = \theta_y = \theta_z$
 
-$H_a$ 
+$H_a: \exists i,j \text{ s.t. } \theta_i \leq\theta_j$ and $i,j\in \{x,y,z\}$
 
 To control for type one error we will use Bonferroni's adjustment for the paired test. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
 
@@ -237,8 +245,12 @@ calculate_critical = function(stat_dist, alpha){
 ```{r Tukey HSD}
 
 seed_balchange = seed_accounts$balchange
-marketing_balchange = (treated %>% filter(marketing==1))$balchange
-control_balchange = (treated %>% filter(control==1, marketing==0))$balchange
+marketing_balchange = treated %>% 
+  filter(marketing==1)%>%
+  pull(balchange)
+control_balchange = treated %>% 
+  filter(control==1, marketing==0) %>%
+  pull(balchange)
 
 # Permutation Tukey HSD test
 q_star = function(dataset){
