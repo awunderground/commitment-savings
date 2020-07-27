@@ -194,7 +194,8 @@ Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the
 
 ```{r 2-sample}
 x = list(nonseed$balchange, seed_accounts$balchange)
-pFligPoli(x, method="Monte Carlo")
+fp_result = pFligPoli(x, method="Monte Carlo")
+fp_result
 ```
 
 
@@ -331,10 +332,10 @@ print(m >= crit_adj)
 
 ### 4.3 Discussion of Results
 
-A p-value of 0.0001 for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
+A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
 
 
-A p-value of 0 for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
+A p-value of `r p_val` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
 
 The matrix shows that the SEED accounts had better savings than the control group and the marketing groups. No other differences were significant. This allows us to conclude that the SEED accounts had better savings than the other two groups.
 
