@@ -176,7 +176,7 @@ $H_0: \theta_x = \theta_y = \theta_z$
 
 $H_a$ 
 
-To control for type one error we will use Bonferroni's adjustment for the paired test. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (k * (k - 1))`$[@Higgins]
+To control for type one error we will use Bonferroni's adjustment for the paired test. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
 
 Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the savings in the control group, the marketing group, and the SEED accounts respectively.
 
