@@ -100,9 +100,15 @@ One possible intervention is a commitment savings account, which when opened is 
 
 [@Ashraf2006] implemented a randomized control trial (RCT) to 1. see if individuals offered the account open the accounts, and if so, what characteristics are associated with opening an account and 2. if individuals save more as a result of opening the account. 
 
+The authors partnered with a rural bank in Mindanao, Philippines called Green Bank of Caraga. After two rounds of randomization, they ended up with a survey size of 1,777 people who completed a baseline household survey. They then randomly assigned the individuals to the commitment treatment (T), marketing-treatment (M), and control (C) groups. One concern is that the commitment-savings may have a treatment effect because of the outreach or positive messaging around savings. The marketing treatment (M), a special visit to encourage savings using existing savings products only, was included to evaluate this effect. The marketing-treatment can also be thought of as a control. There were no pre-treatment significant differences between the three groups for observable characteristics.  
+
+The two main outcomes of interest are 1. take-up of the commitment savings product and 2. savings at the financial institution. The authors use the baseline household survey to evaluate if there are any predictors to take-up. Savings balances at the institution, and not just in the commitment savings account, partially accounts for crowd-out to other savings vehicles.
+
 The authors find that individuals open the accounts when offered. They also find that women are statistically significantly more likely to open accounts if they have hyperbolic preferences. They did not find a significant result for men. People have hyperbolic preferences if they exhibit a high discount rate in the immediate future and a lower discount rate further in the future. Accordingly, these individuals can improve their welfare with a commitment savings device. 
 
 The authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
+
+todo(aaron): address quantile regression
 
 We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
 
@@ -110,15 +116,76 @@ We find... todo(aaron): add a paragraph summarizing our conclusions
 
 ## 2. Summary of Data for Analysis
 
-The data and code for [@Ashraf2006] are available on the Harvard Dataverse [@Data]. The repository contains Stata `.do` files for all models and tables included in the authors' paper. The repository contains three data sets. 
+The data and code for [@Ashraf2006] are available on the Harvard Dataverse [@Data]. The repository contains Stata `.do` files for all models and tables included in the authors' paper. 
 
-The first contains information after six months. The second contains information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published table matches the published table. 
+The repository contains three data sets. All three data sets include identifiers and certain demographic information. The first data set contains outcome information after six months. The second data set contains outcome information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published table matches the published table. 
 
-todo(aaron): include a brief visual summary of the data
-
-Number of observations
+The authors began with a sample of 4,001 clients who have savings accounts in of two bank branches in the greater Butuan City area and have identifiable addresses. A second randomization resulted in 3,154 potential surveys and 1,777 completed surveys. 
 
 
+```{r}
+#
+# Create a plot to show the skew of balchange
+#
+skewa = six_months %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal()
+
+skewb = treated %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+```{r}
+#
+# Create a plot to show the skew of balchange by group
+#
+skewa = six_months %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewb = treated %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
 
 ```{r}
 seed_accounts = treated %>% filter(treatment == 1)
@@ -178,83 +245,15 @@ As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the n
 
 ## 5. Robust Regression
 
-log; however, non-positive values
-
-
-
 [@Ashraf2006] estimate regression models with change in savings account balance as the dependent variable and the different treatments and controls as independent variables. This is to estimate the intent-to-treat effect (ITT) of the commitment savings account--that is the effect on account balances of being offered the commitment savings account versus not being offered the account or being offered the marketing treatment instead. 
 
-The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
+The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months as demonstrated in [todo(aaron): add plot number from above]. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
 
-```{r}
-#
-# Create a plot to show the skew of balchange
-#
-skewa = six_months %>%
-  ggplot(aes(balchange)) +
-  geom_density() +
-  scale_x_continuous(labels = scales::comma) +
-  scale_y_continuous(limits = c(0, 0.004)) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
-       subtitle = "Six Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",       
-       y = NULL) +
-  theme_minimal()
+[todo(aaron): add plot number from above] The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
 
-skewb = treated %>%
-  ggplot(aes(balchange)) +
-  geom_density() +
-  scale_x_continuous(labels = scales::comma) +
-  scale_y_continuous(limits = c(0, 0.004)) +
-  labs(title = "",
-       subtitle = "Twelve Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",
-       y = NULL) +  
-  theme_minimal()
+A normal distribution and ordinary least squares regression do not seem appropriate in this situation. One option is to transform the outcome variable before estimation so that normal-theory methods can be applied to the data. A log transformation would be appropriate but the presence of non-positive numbers would lead to an undefined outcome. An inverse hyperbolic sine transformation [@Burbidge] or Yeo-Johnson transformation [@Yeo] could result in a similar transformation to a log transformation and be robust to non-positive numbers. 
 
-skewa + skewb
-
-rm(skewa, skewb)
-
-```
-
-The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
-
-```{r}
-#
-# Create a plot to show the skew of balchange by group
-#
-skewa = six_months %>%
-  ggplot(aes(balchange, y = group, color = group)) +
-  geom_point(alpha = 0.2) +
-  scale_x_continuous(labels = scales::comma) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
-       subtitle = "Six Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",       
-       y = NULL) +
-  theme_minimal() +
-  guides(color = FALSE)
-
-skewb = treated %>%
-  ggplot(aes(balchange, y = group, color = group)) +
-  geom_point(alpha = 0.2) +
-  scale_x_continuous(labels = scales::comma) +
-  labs(title = "",
-       subtitle = "Twelve Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",
-       y = NULL) +  
-  theme_minimal() +
-  guides(color = FALSE)
-
-skewa + skewb
-
-rm(skewa, skewb)
-
-# measure of outliers from 611?
-
-```
-
-[@Ashraf2006] found only modest evidence for a statistically significant intent-to-treat (ITT) effect for the commitment savings accounts using ordinary least squares regression (OLS). Furthermore, they found that the differential effect of being offered the commitment savings product beyond being offered only a marketing treatment was indistinguishable from zero. 
+[@Ashraf2006] estimate their models on the untransformed data and find only modest evidence for a statistically significant intent-to-treat (ITT) effect for the commitment savings accounts using ordinary least squares regression (OLS). Furthermore, they found that the differential effect of being offered the commitment savings product beyond being offered only a marketing treatment was indistinguishable from zero. 
 
 The authors state: 
 
@@ -361,7 +360,6 @@ We begin by recreating half of Table VI from [@Ashraf2006]. All models are estim
 #
 # OLS model
 #
-six_months = filter(seed011204, !is.na(treatment))
 
 # column 1
 lm1 = lm(balchange ~ treatment + marketing, data = six_months) 
@@ -460,6 +458,18 @@ stargazer::stargazer(
 ```
 
 ### 5.3 Discussion of Results
+
+1. plot residuals
+2. measures of outliers
+
+
+
+
+
+
+
+
+
 
 M-estimation and robust rank-based regression lead to very different results than ordinary least squares. 
 
