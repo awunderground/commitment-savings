@@ -127,7 +127,7 @@ The authors began with a sample of 4,001 clients who have savings accounts in on
 
 The key outcomes of interest for this reanalysis, the change in balance after six months and the change in balance after twelve months, are both highly right skewed. 
 
-```{r}
+```{r histogram}
 #
 # Create a histogram to show the skew of balchange
 #
@@ -163,7 +163,7 @@ rm(skewa, skewb)
 
 Here is the same information as a kernel density estimate (KDE). 
 
-```{r}
+```{r density-plot}
 #
 # Create a density plot to show the skew of balchange
 #
@@ -197,7 +197,7 @@ rm(skewa, skewb)
 
 The right skew is present in the treatment and control groups, but it most pronounced in the commit-savings treatment group after twelve months. 
 
-```{r}
+```{r skew-by-group}
 #
 # Create a plot to show the skew of balchange by group
 #
@@ -229,7 +229,7 @@ rm(skewa, skewb)
 
 ```
 
-```{r}
+```{r subset-data}
 seed_accounts = treated %>% 
   filter(treatment == 1)
 nonseed = treated %>% 
@@ -264,14 +264,14 @@ The Wilcoxon Signed-Rank Test requires three assumptions:
 
 ### 3.2 Results
 
-```{r wilcox paired test}
+```{r wilcox-paired-test}
 wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
+
 ```
 
 ### 3.3 Discussion of Results
 
 As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the null hypothesis in favor of the alternate hypothesis. We conclude that customers who had SEED accounts saw an increase in savings over the duration of the trial. It is worth noting that we have not yet shown that the SEED accounts are more effective savings accounts than other methods, just that customers were able to save with them.
-
 
 ## 4. Two-sample Test and K-Sample Test
 
@@ -304,8 +304,6 @@ To control for type one error we will use Bonferroni's adjustment for the paired
 
 Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the savings in the control group, the marketing group, and the SEED accounts respectively.
 
-
-
 ### 4.2 Results
 
 ```{r 2-sample}
@@ -315,7 +313,7 @@ fp_result
 ```
 
 
-```{r Tukey HSD setup}
+```{r Tukey-HSD-setup}
 # Helper functions
 comp_sum = function(val, t1){
 # Helper function for Mann-Whitney stat
@@ -344,7 +342,6 @@ general_stat_perm= function(full_data, n_s, stat_func){
   return(stat_func(dataset))
 }
 
-
 calculate_critical = function(stat_dist, alpha){
   # stat_dist is sorted
   R = length(stat_dist)
@@ -358,8 +355,7 @@ calculate_critical = function(stat_dist, alpha){
 
 ```
 
-
-```{r Tukey HSD}
+```{r Tukey-HSD}
 
 seed_balchange = seed_accounts$balchange
 marketing_balchange = treated %>% 
@@ -426,8 +422,7 @@ print(p_message)
 
 ```
 
-
-```{r}
+```{r pairwise-results}
 m = matrix(NA, k, k, 
            dimnames = list(
              names(treat_list),
@@ -442,6 +437,7 @@ for (row in names(treat_list)){
 }
 print("pairwise statistics greater than or equal to the adjusted alpha critical value")
 print(m >= crit_adj)
+
 ```
 
 ### 4.3 Discussion of Results
@@ -478,7 +474,7 @@ The authors then estimate probit models on the twelve month data and find statis
 
 We first explore their constructed variables and then we offer an alternative approach. A closer look at the data show that many balances decreased or remained the same and only a fraction of balances increased after twelve months.
 
-```{r}
+```{r balchange-direction}
 #
 # Count the types of change in balchange
 # 
@@ -501,7 +497,7 @@ count(treated, change) %>%
 
 Importantly, inside the treatment group, more balances decreased than increased in the 12 month window. 
 
-```{r}
+```{r blachange-direction-by-group}
 count(treated, group, change) %>%
   pivot_wider(names_from = change,
               values_from = n) %>%
@@ -511,7 +507,7 @@ count(treated, group, change) %>%
 
 The story is even more dramatic for the 20 percent increase outcome variable. 
 
-```{r}
+```{r porbit-dependent-vars}
 count(treated, frac_change_20) %>%
   pivot_wider(names_from = frac_change_20,
               values_from = n) %>%
@@ -538,9 +534,7 @@ $$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N (Y_i - \hat{Y_i})^2$$
 
 The square in this optimization gives extra weight to outliers. In this case, all of the outliers are positive and the squared term will result in an estimated intercept and estimated coefficients that are further from zero in the positive direction. 
 
-Regression with M-estimation estimates coefficients, $\vec{\hat{\beta}}$, that minimize standardized residuals where outliers receive less weight
-
-todo(aaron): citation
+Regression with M-estimation [@Huber1964] estimates coefficients, $\vec{\hat{\beta}}$, that minimize standardized residuals where outliers receive less weight
 
 $$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N \rho\left(\frac{Y_i - \hat{Y_i}}{\hat{\sigma}_i}\right)$$
 
@@ -565,7 +559,7 @@ Like [@Ashraf2006], we estimate the intent-to-treat (ITT) effect with the change
 
 We begin by recreating half of Table VI from [@Ashraf2006]. All models are estimated using ordinary least squares regression and the standard errors are HC1 heteroskedasticity-robust standard errors [@MacKinnon1985].
 
-```{r results = "asis"}
+```{r ols-model, results = "asis"}
 #
 # OLS model
 #
@@ -600,7 +594,7 @@ stargazer::stargazer(lm1, lm2, lm3, lm4,
 
 We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-```{r results = "asis"}
+```{r mestimation-model, results = "asis"}
 #
 # M-Estimation model
 #
@@ -630,7 +624,7 @@ stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
 
 We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-```{r results = "asis"}
+```{r rank-based-regression, results = "asis"}
 #
 # Robust and rank-based regression
 #
@@ -670,7 +664,7 @@ stargazer::stargazer(
 
 The models estimated with OLS have residuals that are highly skewed. The following QQ plots demonstrate that many of the residuals are approximately normally distributed, as they fall on the diagonal line. However, the residuals dramatically depart the line at higher values. 
 
-```{r}
+```{r residual-plot}
 resid1 = augment(lm3) %>%
   ggplot(aes(sample = .resid)) +
   geom_qq(alpha = 0.2) +
@@ -699,7 +693,7 @@ The skewed distribution and outliers lead to dramatically larger standard errors
 
 The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
 
-```{r}
+```{r visualize-models}
 #
 # Visualize column (3)
 #
@@ -746,7 +740,7 @@ coefficients %>%
 
 The following data visualization compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
 
-```{r}
+```{r visualize-models2}
 #
 # Visualize column (4)
 #
