@@ -108,7 +108,7 @@ The authors find that individuals open the accounts when offered. They also find
 
 The authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
 
-todo(aaron): address quantile regression
+The authors also estimate quantile regressions at the 10th through 90th deciles. The estimated effects are significant after 12 months when comparing the commitment-saving group with the full control group. The statistical and practical significance disappears when comparing the commitment-savings group with the marketing group. 
 
 We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
 
