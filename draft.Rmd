@@ -292,17 +292,27 @@ Where $\theta_x$ represents the true median of the difference in balance changes
 
 In addition to testing whether or not the SEED accounts are more effective savings than a control group, we also want to confirm that the SEED accounts are more effective than just the marketing that comes with them. To do this we divide the customers into three groups. A control group, a group that receives marketing but not SEED accounts, and the group with SEED accounts.
 
-We will use the Tukey Permutation HSD Test to conduct a multiple comparison test of these groups. The test statistic will be calculated by taking the maximum absolute value of the Mann-Whitney statistic for each pairwise comparison of the three groups. The p-value will be calculated with a re-sampling approach. We will shuffle the data between groups and recalculate the test statistic 10,000 times. The estimated p-value will be the percentage of test statistics greater than or equal to the observed.
+We will use the Kruskal-Wallis Test to conduct a multiple comparison test of these groups. The test will tell us if there is a difference in the underlying distributions for the three treatments. The Kruskal-Wallis Test is a rank based test, as such it is somewhat resilient to outliers. It relies on the following three assumptions: [@HWC]
+
+1. All the observations are mutually independent
+2. The members of the three treatments are drawn from the same population.
+3. The three distributions only differ in position parameter
+
+We are clearly comfortable with the first two assumptions. We are comfortable with the third assumption, because outliers aside, the we can see in the data exploration section that the three treatments are all tightly clustered around 0.
 
 We will conduct this test at a significance level of $\alpha=0.05$ with the following hypothesis.
 
 $H_0: \theta_x = \theta_y = \theta_z$
 
-$H_a: \exists i,j \text{ s.t. } \theta_i \leq\theta_j$ and $i,j\in \{x,y,z\}$
-
-To control for type one error we will use Bonferroni's adjustment for the paired test. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
+$H_a:[\theta_x, \theta_y, \theta_z \text{ not all equal}]$
 
 Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the savings in the control group, the marketing group, and the SEED accounts respectively.
+
+Additionally, we will conduct a pairwise comparison test using the Wilcoxon Rank sum test as the underlying test to identify the specific pairs that might be the source of the difference.
+
+To control for type one error we will use Bonferroni's adjustment for the paired tests. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
+
+
 
 ### 4.2 Results
 
@@ -315,48 +325,48 @@ fp_result
 ```
 
 
-#### Tukey Permutation HSD results
+#### Kruskal-Wallis Results
 
 ```{r Tukey-HSD-setup}
 # Helper functions
-comp_sum = function(val, t1){
-# Helper function for Mann-Whitney stat
-  full = sum(t1 < val)
-  partial = 0.5 * sum(t1 == val)
-  return(full+partial)
-}
-
-mw_stat = function(t1, t2){
-  #Mann-Whitney statistic for two treatments
-  comp_sums = mapply(comp_sum, t2, MoreArgs = list(t1=t1))
-  return(sum(comp_sums))
-}
-
-
-general_stat_perm= function(full_data, n_s, stat_func){
-  # stat_func should take in a list of 
-  dataset = list()
-  k = length(n_s)
-  start=1
-  end=0
-  for (i in 1:k){
-    end = end + n_s[i]
-    dataset[[i]] = full_data[start:end]
-    start = end + 1
-  }
-  return(stat_func(dataset))
-}
-
-calculate_critical = function(stat_dist, alpha){
-  # stat_dist is sorted
-  R = length(stat_dist)
-  init_crit = stat_dist[R*alpha]
-  if(sum(sample_q >= init_crit)/R == alpha){
-    return(init_crit)
-  }
-  index = sum(sample_q > init_crit)
-  return(sample_q[index])
-}
+# comp_sum = function(val, t1){
+# # Helper function for Mann-Whitney stat
+#   full = sum(t1 < val)
+#   partial = 0.5 * sum(t1 == val)
+#   return(full+partial)
+# }
+# 
+# mw_stat = function(t1, t2){
+#   #Mann-Whitney statistic for two treatments
+#   comp_sums = mapply(comp_sum, t2, MoreArgs = list(t1=t1))
+#   return(sum(comp_sums))
+# }
+# 
+# 
+# general_stat_perm= function(full_data, n_s, stat_func){
+#   # stat_func should take in a list of 
+#   dataset = list()
+#   k = length(n_s)
+#   start=1
+#   end=0
+#   for (i in 1:k){
+#     end = end + n_s[i]
+#     dataset[[i]] = full_data[start:end]
+#     start = end + 1
+#   }
+#   return(stat_func(dataset))
+# }
+# 
+# calculate_critical = function(stat_dist, alpha){
+#   # stat_dist is sorted
+#   R = length(stat_dist)
+#   init_crit = stat_dist[R*alpha]
+#   if(sum(sample_q >= init_crit)/R == alpha){
+#     return(init_crit)
+#   }
+#   index = sum(sample_q > init_crit)
+#   return(sample_q[index])
+# }
 
 ```
 
@@ -371,21 +381,21 @@ control_balchange = treated %>%
   pull(balchange)
 
 # Permutation Tukey HSD test
-q_star = function(dataset){
-  # Permutation HSD pg 97
-  # Use the Mann-Whitney for T
-  k = length(dataset)
-  max_t = 0
-  for (i in 1:(k-1)) {
-    for(j in (i+1):k){
-      t = abs(mw_stat(dataset[[i]], dataset[[j]]))
-      if (t > max_t){
-        max_t = t
-      }
-    }
-  }
-  return(max_t)
-}
+# q_star = function(dataset){
+#   # Permutation HSD pg 97
+#   # Use the Mann-Whitney for T
+#   k = length(dataset)
+#   max_t = 0
+#   for (i in 1:(k-1)) {
+#     for(j in (i+1):k){
+#       t = abs(mw_stat(dataset[[i]], dataset[[j]]))
+#       if (t > max_t){
+#         max_t = t
+#       }
+#     }
+#   }
+#   return(max_t)
+# }
 
 treat_list = list(
   control=control_balchange,
@@ -398,30 +408,35 @@ n_s = mapply(length, treat_list)
 N = sum(n_s)
 full_data = unlist(treat_list)
 
-R = 10000
-permutations = matrix(NA, ncol = N, nrow=R)
-for (i in 1:R){
-  permutations[i,] = sample(full_data)
-}
-sample_q = apply(permutations, 1, general_stat_perm, n_s, q_star)
-sample_q = sort(sample_q, decreasing = TRUE)
-
 alpha = 0.05
 adjusted_alpha = 2*alpha/ (k*(k-1))
 
-crit_alpha = calculate_critical(sample_q, alpha)
-crit_adj = calculate_critical(sample_q, adjusted_alpha)
-# crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
-# print(crit_message)
 
-q_obs = q_star(treat_list)
-obs_message = sprintf("The observed value of Q* is: %s", q_obs)
-print(obs_message)
-
-counts = sum(sample_q>= q_obs)
-p_val = counts/R
-p_message = sprintf("With a p-value of %s", p_val)
-print(p_message)
+# R = 10000
+# permutations = matrix(NA, ncol = N, nrow=R)
+# for (i in 1:R){
+#   permutations[i,] = sample(full_data)
+# }
+# sample_q = apply(permutations, 1, general_stat_perm, n_s, q_star)
+# sample_q = sort(sample_q, decreasing = TRUE)
+# 
+# 
+# 
+# crit_alpha = calculate_critical(sample_q, alpha)
+# crit_adj = calculate_critical(sample_q, adjusted_alpha)
+# # crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
+# # print(crit_message)
+# 
+# q_obs = q_star(treat_list)
+# obs_message = sprintf("The observed value of Q* is: %s", q_obs)
+# print(obs_message)
+# 
+# counts = sum(sample_q>= q_obs)
+# p_val = counts/R
+# p_message = sprintf("With a p-value of %s", p_val)
+# print(p_message)
+kw_result = kruskal.test(treat_list)
+kw_result
 
 ```
 
@@ -443,7 +458,9 @@ for (row in names(treat_list)){
 }
 #print("pairwise statistics greater than or equal to the adjusted alpha critical value")
 comparison_matrix = as.table(m <= adjusted_alpha)
-knitr::kable(comparison_matrix, caption="Significant difference found in pairwise comparison.")
+knitr::kable(comparison_matrix, caption="Significant difference found in pairwise comparison with Wilcoxon Test.")
+
+
 
 ```
 
@@ -451,9 +468,9 @@ knitr::kable(comparison_matrix, caption="Significant difference found in pairwis
 
 A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
 
-A p-value of `r p_val` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
+A p-value of `r kw_result$p.value` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
 
-The matrix shows that the SEED accounts had better savings than the control group and the marketing groups. No other differences were significant. This allows us to conclude that the SEED accounts had better savings than the other two groups.
+The matrix shows that the SEED accounts had better savings than the control group, but not the marketing groups. No other differences were significant. This allows us to conclude that the SEED accounts had better savings than the control, but are not significantly more effective than the marketing groups. This is a contradiction to the original paper.
 
 ## 5. Robust Regression
 
@@ -794,6 +811,9 @@ coefficients %>%
 ```
 
 ## Conclusion
+
+
+
 
 \newpage
 
