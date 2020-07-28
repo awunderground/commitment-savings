@@ -98,9 +98,9 @@ Personal savings can be a financial buffer during emergencies and economic downt
 
 One possible intervention is a commitment savings account, which when opened is a savings account that restricts the account holder's access to the balance until a savings goal is achieved, a fixed period of time has passed, or an emergency occurs. The accounts have no other benefits like bonuses or preferred interest rates. 
 
-[@Ashraf2006] implemented a randomized control trial (RCT) to 1. see if individuals offered the account open the accounts, and if so, what characteristics are associated with opening an account and 2. if individuals save more as a result of opening the account. 
+[@Ashraf2006] implemented a randomized control trial (RCT) to 1. see if individuals offered accounts opens accounts, and if so, what characteristics are associated with opening an account and 2. if individuals save more as a result of opening an account. 
 
-The authors partnered with a rural bank in Mindanao, Philippines called Green Bank of Caraga. After two rounds of randomization, they ended up with a survey size of 1,777 people who completed a baseline household survey. They then randomly assigned the individuals to the commitment treatment (T), marketing-treatment (M), and control (C) groups. One concern is that the commitment-savings may have a treatment effect because of the outreach or positive messaging around savings. The marketing treatment (M), a special visit to encourage savings using existing savings products only, was included to evaluate this effect. The marketing-treatment can also be thought of as a control. There were no pre-treatment significant differences between the three groups for observable characteristics.  
+The authors partnered with a rural bank in Mindanao, Philippines called Green Bank of Caraga. After two rounds of randomization, they ended up with a survey size of 1,777 people who completed a baseline household survey. They then randomly assigned the individuals to the commitment treatment (T), marketing-treatment (M), and control (C) groups. One concern is that the commitment-savings may have a treatment effect because of the outreach or positive messaging around savings. The marketing treatment (M), a special visit to encourage savings using existing savings products only, was included to evaluate this effect. The marketing-treatment can also be thought of as a control. No pre-treatment observable differences between the three groups were statistically significantly different. 
 
 The two main outcomes of interest are 1. take-up of the commitment savings product and 2. savings at the financial institution. The authors use the baseline household survey to evaluate if there are any predictors to take-up. Savings balances at the institution, and not just in the commitment savings account, partially accounts for crowd-out to other savings vehicles.
 
@@ -108,7 +108,7 @@ The authors find that individuals open the accounts when offered. They also find
 
 The authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
 
-The authors also estimate quantile regressions at the 10th through 90th deciles. The estimated effects are significant after 12 months when comparing the commitment-saving group with the full control group. The statistical and practical significance disappears when comparing the commitment-savings group with the marketing group. 
+The authors also estimate quantile regressions at the 10th through 90th deciles. The estimated effects are significant after 12 months when comparing the commitment-savings group with the full control group. The statistical and practical significance disappears when comparing the commitment-savings group with the marketing group. 
 
 We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
 
@@ -118,10 +118,11 @@ We find... todo(aaron): add a paragraph summarizing our conclusions
 
 The data and code for [@Ashraf2006] are available on the Harvard Dataverse [@Data]. The repository contains Stata `.do` files for all models and tables included in the authors' paper. 
 
-The repository contains three data sets. All three data sets include identifiers and certain demographic information. The first data set contains outcome information after six months. The second data set contains outcome information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published table matches the published table. 
+The repository contains three data sets. All three data sets include identifiers and certain demographic information. The first data set contains outcome information after six months. The second data set contains outcome information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published data match the published tables. 
 
-The authors began with a sample of 4,001 clients who have savings accounts in of two bank branches in the greater Butuan City area and have identifiable addresses. A second randomization resulted in 3,154 potential surveys and 1,777 completed surveys. 
+The authors began with a sample of 4,001 clients who have savings accounts in one of two bank branches in the greater Butuan City area and have identifiable addresses. A second randomization resulted in 3,154 potential surveys and 1,777 completed surveys. 
 
+The key outcomes of interest for this reanalysis, the change in balance after six months and the change in balance after twelve months, are both highly right skewed. 
 
 ```{r}
 #
@@ -154,6 +155,8 @@ skewa + skewb
 rm(skewa, skewb)
 
 ```
+
+The right skew is present in the treatment and control groups, but it most pronounced in the commit-savings treatment group after twelve months. 
 
 ```{r}
 #
