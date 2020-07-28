@@ -155,6 +155,9 @@ skewb = treated %>%
        y = NULL) +  
   theme_minimal()
 
+
+
+
 skewa + skewb
 
 rm(skewa, skewb)
@@ -188,6 +191,7 @@ skewb = treated %>%
        x = "Change in balance (Philippine Peso)",
        y = NULL) +  
   theme_minimal()
+
 
 skewa + skewb
 
@@ -223,11 +227,33 @@ skewb = treated %>%
   theme_minimal() +
   guides(color = FALSE)
 
+
+
 skewa + skewb
 
 rm(skewa, skewb)
 
 ```
+
+
+```{r variance-by-group-quantile}
+
+skewc = treated %>%
+  group_by(group) %>%
+  filter(balchange < quantile(balchange, 0.99)) %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha=0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Variance by treatment having removed significant outliers",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewc
+rm(skewc)
+
+```
+
 
 ```{r subset-data}
 seed_accounts = treated %>% 
