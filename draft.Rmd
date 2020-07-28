@@ -34,6 +34,7 @@ library(patchwork)
 library(broom)
 library(sandwich)
 library(lmtest)
+library(NSM3)
 
 ```
 
@@ -96,7 +97,10 @@ treated = combined %>%
 ## 2. Summary of Data for Analysis
 
 ```{r}
-seed_accounts = treated %>% filter(treatment == 1)
+seed_accounts = treated %>% 
+  filter(treatment == 1)
+nonseed = treated %>% 
+  filter(treatment == 0)
 hist(seed_accounts$balchange,
      main="Histogram of balance changes for SEED accounts",
      xlab="Balance Change")
@@ -108,6 +112,12 @@ hist(filtered_seeds$balchange,
 
 print("Summary statistics for Seed account balance changes")
 summary(seed_accounts$balchange)
+
+
+filtered_nonseeds = nonseed %>% filter(balchange<10000)
+hist(nonseed$balchange)
+hist(filtered_nonseeds$balchange)
+
 ```
 
 ## 3. Paired Comparisons
@@ -116,7 +126,7 @@ summary(seed_accounts$balchange)
 
 We will use a one sided Wilcoxon Signed-Rank Test at a significance of $\alpha=0.05$ to test if the the savings of customers with SEED accounts increased.
 
-We will be testing the following hypothesis where $\theta_d$ is the mean of the differences in savings for customers with SEED accounts from before and after the trial
+We will be testing the following hypothesis where $\theta_d$ is the median of the differences in savings for customers with SEED accounts from before and after the trial
 
 $H_0: \theta_d = 0$
 
@@ -128,13 +138,17 @@ The Wilcoxon Signed-Rank Test statistic is done by ranking the absolute values o
 $E(SR_+) = \frac{n(n+1)}{4} = `r (842 * (842 + 1)) / 4`$ and 
 $\text{var}(SR_+) = \frac{n(n+1)(2n+1)}{24}=`r (842 * (842 + 1) * (2 * 842 + 1) / 24)`$. [@Higgins]
 
+The Wilcoxon Signed-Rank Test requires three assumptions:
+
+1. The data is paired and comes from the same population
+2. Each pair is chosen randomly and independently
+3. The data is continuous.
+
 
 ### 3.2 Results
 
-```{r}
+```{r wilcox paired test}
 wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
-
-
 ```
 
 
@@ -147,9 +161,183 @@ As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the n
 
 ### 4.1 Methods
 
+We know very little about the difference in the underlying distributions of the SEED account savings and the non SEED account savings. We can reasonably assuming independence from each other and continuity of both distributions, but not much else. However, the closest test that matches those assumptions is the Fligner-Policello Test.
+
+The Fligner-Policello Test tests for a difference in population median, but it requires both populations to be symmetric. We feel comfortable violating this assumption here for two reasons. One is that once the comparably small number of outliers are removed, the distributions start to become symmetric. The second reason is that this is the most permissive test of center available to us. 
+
+We will run this test at a significance level of $\alpha=0.05$ with the following hypothesis.
+
+$H_0: \theta_x = \theta_y$
+
+$H_a: \theta_x < \theta_y$
+
+Where $\theta_x$ represents the true median of the difference in balance changes for the control group and $\theta_y$ represents the true median of the difference in balance changes for SEED accounts.
+
+
+In addition to testing whether or not the SEED accounts are more effective savings than a control group, we also want to confirm that the SEED accounts are more effective than just the marketing that comes with them. To do this we divide the customers into three groups. A control group, a group that receives marketing but not SEED accounts, and the group with SEED accounts.
+
+We will use the Tukey Permutation HSD Test to conduct a multiple comparison test of these groups. The test statistic will be calculated by taking the maximum absolute value of the Mann-Whitney statistic for each pairwise comparison of the three groups. The p-value will be calculated with a re-sampling approach. We will shuffle the data between groups and recalculate the test statistic 10,000 times. The estimated p-value will be the percentage of test statistics greater than or equal to the observed.
+
+We will conduct this test at a significance level of $\alpha=0.05$ with the following hypothesis.
+
+$H_0: \theta_x = \theta_y = \theta_z$
+
+$H_a: \exists i,j \text{ s.t. } \theta_i \leq\theta_j$ and $i,j\in \{x,y,z\}$
+
+To control for type one error we will use Bonferroni's adjustment for the paired test. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
+
+Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the savings in the control group, the marketing group, and the SEED accounts respectively.
+
+
+
 ### 4.2 Results
 
+```{r 2-sample}
+x = list(nonseed$balchange, seed_accounts$balchange)
+fp_result = pFligPoli(x, method="Monte Carlo")
+fp_result
+```
+
+
+```{r Tukey HSD setup}
+# Helper functions
+comp_sum = function(val, t1){
+# Helper function for Mann-Whitney stat
+  full = sum(t1 < val)
+  partial = 0.5 * sum(t1 == val)
+  return(full+partial)
+}
+
+mw_stat = function(t1, t2){
+  #Mann-Whitney statistic for two treatments
+  comp_sums = mapply(comp_sum, t2, MoreArgs = list(t1=t1))
+  return(sum(comp_sums))
+}
+
+general_stat_perm= function(full_data, n_s, stat_func){
+  # stat_func should take in a list of 
+  dataset = list()
+  k = length(n_s)
+  start=1
+  end=0
+  for (i in 1:k){
+    end = end + n_s[i]
+    dataset[[i]] = full_data[start:end]
+    start = end + 1
+  }
+  return(stat_func(dataset))
+}
+
+
+calculate_critical = function(stat_dist, alpha){
+  # stat_dist is sorted
+  R = length(stat_dist)
+  init_crit = stat_dist[R*alpha]
+  if(sum(sample_q >= init_crit)/R == alpha){
+    return(init_crit)
+  }
+  index = sum(sample_q > init_crit)
+  return(sample_q[index])
+}
+
+```
+
+
+```{r Tukey HSD}
+
+seed_balchange = seed_accounts$balchange
+marketing_balchange = treated %>% 
+  filter(marketing==1)%>%
+  pull(balchange)
+control_balchange = treated %>% 
+  filter(control==1, marketing==0) %>%
+  pull(balchange)
+
+# Permutation Tukey HSD test
+q_star = function(dataset){
+  # Permutation HSD pg 97
+  # Use the Mann-Whitney for T
+  k = length(dataset)
+  max_t = 0
+  for (i in 1:(k-1)) {
+    for(j in (i+1):k){
+      t = abs(mw_stat(dataset[[i]], dataset[[j]]))
+      if (t > max_t){
+        max_t = t
+      }
+    }
+  }
+  return(max_t)
+}
+
+treat_list = list(
+  control=control_balchange,
+  marketing=marketing_balchange,
+  seed=seed_balchange
+)
+
+k = length(treat_list)
+n_s = mapply(length, treat_list)
+N = sum(n_s)
+full_data = unlist(treat_list)
+
+R = 10000
+permutations = matrix(NA, ncol = N, nrow=R)
+for (i in 1:R){
+  permutations[i,] = sample(full_data)
+}
+sample_q = apply(permutations, 1, general_stat_perm, n_s, q_star)
+sample_q = sort(sample_q, decreasing = TRUE)
+
+alpha = 0.05
+adjusted_alpha = 2*alpha/ (k*(k-1))
+print(sprintf("Alpha of %s leads to an adjusted alpha of %s", alpha, adjusted_alpha))
+
+
+crit_alpha = calculate_critical(sample_q, alpha)
+crit_adj = calculate_critical(sample_q, adjusted_alpha)
+crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
+print(crit_message)
+
+q_obs = q_star(treat_list)
+obs_message = sprintf("The observed value of Q* is: %s", q_obs)
+print(obs_message)
+
+counts = sum(sample_q>= q_obs)
+p_val = counts/R
+p_message = sprintf("With a p-value of %s", p_val)
+print(p_message)
+
+```
+
+
+```{r}
+m = matrix(NA, k, k, 
+           dimnames = list(
+             names(treat_list),
+             names(treat_list)
+            )
+          )
+
+for (row in names(treat_list)){
+  for(col in names(treat_list)){
+    m[row,col] = mw_stat(treat_list[[row]], treat_list[[col]])
+  }
+}
+print("pairwise statistics greater than or equal to the adjusted alpha critical value")
+print(m >= crit_adj)
+```
+
+
+
 ### 4.3 Discussion of Results
+
+A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
+
+
+A p-value of `r p_val` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
+
+The matrix shows that the SEED accounts had better savings than the control group and the marketing groups. No other differences were significant. This allows us to conclude that the SEED accounts had better savings than the other two groups.
 
 ## 5. Robust Regression
 
