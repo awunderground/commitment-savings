@@ -306,12 +306,16 @@ Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the
 
 ### 4.2 Results
 
+#### Fligner-Policello Results
+
 ```{r 2-sample}
 x = list(nonseed$balchange, seed_accounts$balchange)
 fp_result = pFligPoli(x, method="Monte Carlo")
 fp_result
 ```
 
+
+#### Tukey Permutation HSD results
 
 ```{r Tukey-HSD-setup}
 # Helper functions
