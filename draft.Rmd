@@ -103,17 +103,19 @@ One possible intervention is a commitment savings account, which when opened is 
 
 The authors partnered with a rural bank in Mindanao, Philippines called Green Bank of Caraga. After two rounds of randomization, they ended up with a survey size of 1,777 people who completed a baseline household survey. They then randomly assigned the individuals to the commitment treatment (T), marketing-treatment (M), and control (C) groups. One concern is that the commitment-savings may have a treatment effect because of the outreach or positive messaging around savings. The marketing treatment (M), a special visit to encourage savings using existing savings products only, was included to evaluate this effect. The marketing-treatment can also be thought of as a control. No pre-treatment observable differences between the three groups were statistically significantly different. 
 
-The two main outcomes of interest are 1. take-up of the commitment savings product and 2. savings at the financial institution. The authors use the baseline household survey to evaluate if there are any predictors to take-up. Savings balances at the institution, and not just in the commitment savings account, partially accounts for crowd-out to other savings vehicles.
+The two main outcomes of interest are 1. take-up of the commitment savings product and 2. savings at the financial institution. The authors use the baseline household survey to evaluate if there are any predictors to take-up. Savings balances at the institution, and not just in the commitment savings account, partially accounts for crowd-out to other savings vehicles. We focus exclusively on question 2.
 
-The authors find that individuals open the accounts when offered. They also find that women are statistically significantly more likely to open accounts if they have hyperbolic preferences. They did not find a significant result for men. People have hyperbolic preferences if they exhibit a high discount rate in the immediate future and a lower discount rate further in the future. Accordingly, these individuals can improve their welfare with a commitment savings device. 
+For the first question, the authors find that individuals open the accounts when offered. They also find that women are statistically significantly more likely to open accounts if they have hyperbolic preferences. They did not find a significant result for men. People have hyperbolic preferences if they exhibit a high discount rate in the immediate future and a lower discount rate further in the future. Accordingly, these individuals can improve their welfare with a commitment savings device. We do not examine these results. 
 
-The authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
+For the second question, the authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
 
 The authors also estimate quantile regressions at the 10th through 90th deciles. The estimated effects are significant after 12 months when comparing the commitment-savings group with the full control group. The statistical and practical significance disappears when comparing the commitment-savings group with the marketing group. 
 
 We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
 
-We find... todo(aaron): add a paragraph summarizing our conclusions
+We conclude using paired comparisons that customers who had SEED accounts saw an increase in savings over the duration of the trial. We conclude using Tukey Permutation Honest Significant Difference tests that SEED accounts had more savings than the other two groups. Finally, using M-Estimation and rank-based and robust regression we find that SEED accounts had more savings than the other two groups; however, we find much smaller effect sizes than [@Ashraf2006].
+
+Section 2 describes and summarizes the analysis data. In section 3, we test the effectiveness of the SEED accounts on overall savings. In section 4, we test the effectiveness of the SEED accounts against the control group and the marketing treatment. In section 5, use use robust regression techniques to estimate linear regression models that are more appropriate in the presence of outliers. 
 
 ## 2. Summary of Data for Analysis
 
@@ -127,7 +129,43 @@ The key outcomes of interest for this reanalysis, the change in balance after si
 
 ```{r}
 #
-# Create a plot to show the skew of balchange
+# Create a histogram to show the skew of balchange
+#
+skewa = six_months %>%
+  ggplot(aes(balchange)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 2000),
+                     labels = scales::comma) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal()
+
+skewb = treated %>%
+  ggplot(aes(balchange)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 2000),
+                     labels = scales::comma) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+Here is the same information as a kernel density estimate (KDE). 
+
+```{r}
+#
+# Create a density plot to show the skew of balchange
 #
 skewa = six_months %>%
   ggplot(aes(balchange)) +
@@ -196,18 +234,7 @@ seed_accounts = treated %>%
   filter(treatment == 1)
 nonseed = treated %>% 
   filter(treatment == 0)
-hist(seed_accounts$balchange,
-     main="Histogram of balance changes for SEED accounts",
-     xlab="Balance Change")
-filtered_seeds = seed_accounts %>% filter(balchange <=10000)
-hist(filtered_seeds$balchange,
-     main="Outliers removed balance changes for SEED accounts",
-     xlab="Balance Change")
-print("Summary statistics for Seed account balance changes")
-summary(seed_accounts$balchange)
-filtered_nonseeds = nonseed %>% filter(balchange<10000)
-hist(nonseed$balchange)
-hist(filtered_nonseeds$balchange)
+
 ```
 
 ## 3. Paired Comparisons
