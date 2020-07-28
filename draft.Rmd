@@ -327,49 +327,6 @@ fp_result
 
 #### Kruskal-Wallis Results
 
-```{r Tukey-HSD-setup}
-# Helper functions
-# comp_sum = function(val, t1){
-# # Helper function for Mann-Whitney stat
-#   full = sum(t1 < val)
-#   partial = 0.5 * sum(t1 == val)
-#   return(full+partial)
-# }
-# 
-# mw_stat = function(t1, t2){
-#   #Mann-Whitney statistic for two treatments
-#   comp_sums = mapply(comp_sum, t2, MoreArgs = list(t1=t1))
-#   return(sum(comp_sums))
-# }
-# 
-# 
-# general_stat_perm= function(full_data, n_s, stat_func){
-#   # stat_func should take in a list of 
-#   dataset = list()
-#   k = length(n_s)
-#   start=1
-#   end=0
-#   for (i in 1:k){
-#     end = end + n_s[i]
-#     dataset[[i]] = full_data[start:end]
-#     start = end + 1
-#   }
-#   return(stat_func(dataset))
-# }
-# 
-# calculate_critical = function(stat_dist, alpha){
-#   # stat_dist is sorted
-#   R = length(stat_dist)
-#   init_crit = stat_dist[R*alpha]
-#   if(sum(sample_q >= init_crit)/R == alpha){
-#     return(init_crit)
-#   }
-#   index = sum(sample_q > init_crit)
-#   return(sample_q[index])
-# }
-
-```
-
 ```{r Tukey-HSD}
 
 seed_balchange = seed_accounts$balchange
@@ -380,23 +337,6 @@ control_balchange = treated %>%
   filter(control==1, marketing==0) %>%
   pull(balchange)
 
-# Permutation Tukey HSD test
-# q_star = function(dataset){
-#   # Permutation HSD pg 97
-#   # Use the Mann-Whitney for T
-#   k = length(dataset)
-#   max_t = 0
-#   for (i in 1:(k-1)) {
-#     for(j in (i+1):k){
-#       t = abs(mw_stat(dataset[[i]], dataset[[j]]))
-#       if (t > max_t){
-#         max_t = t
-#       }
-#     }
-#   }
-#   return(max_t)
-# }
-
 treat_list = list(
   control=control_balchange,
   marketing=marketing_balchange,
@@ -404,37 +344,10 @@ treat_list = list(
 )
 
 k = length(treat_list)
-n_s = mapply(length, treat_list)
-N = sum(n_s)
-full_data = unlist(treat_list)
 
 alpha = 0.05
 adjusted_alpha = 2*alpha/ (k*(k-1))
 
-
-# R = 10000
-# permutations = matrix(NA, ncol = N, nrow=R)
-# for (i in 1:R){
-#   permutations[i,] = sample(full_data)
-# }
-# sample_q = apply(permutations, 1, general_stat_perm, n_s, q_star)
-# sample_q = sort(sample_q, decreasing = TRUE)
-# 
-# 
-# 
-# crit_alpha = calculate_critical(sample_q, alpha)
-# crit_adj = calculate_critical(sample_q, adjusted_alpha)
-# # crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
-# # print(crit_message)
-# 
-# q_obs = q_star(treat_list)
-# obs_message = sprintf("The observed value of Q* is: %s", q_obs)
-# print(obs_message)
-# 
-# counts = sum(sample_q>= q_obs)
-# p_val = counts/R
-# p_message = sprintf("With a p-value of %s", p_val)
-# print(p_message)
 kw_result = kruskal.test(treat_list)
 kw_result
 
