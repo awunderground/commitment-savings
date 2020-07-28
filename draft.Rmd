@@ -47,7 +47,6 @@ combined = read_stata("dataverse_files/seedanalysis_011204_080404.dta")
 
 six_months = filter(seed011204, !is.na(treatment))
 
-
 ```
 
 ```{r data-cleaning}
@@ -92,31 +91,149 @@ treated = combined %>%
 
 # Commitment Savings Devices
 
+### Luke Botti and Aaron R. Williams
+
 ## 1. Introduction
+
+Personal savings can be a financial buffer during emergencies and economic downturns, are an important catalyst to large purchases like appliances and investments in housing and education, and are essential to maintaining consumption in retirement. Accordingly, promoting and increasing personal savings is an important policy goal for governments, employers, and communities. 
+
+One possible intervention is a commitment savings account, which when opened is a savings account that restricts the account holder's access to the balance until a savings goal is achieved, a fixed period of time has passed, or an emergency occurs. The accounts have no other benefits like bonuses or preferred interest rates. 
+
+[@Ashraf2006] implemented a randomized control trial (RCT) to 1. see if individuals offered accounts opens accounts, and if so, what characteristics are associated with opening an account and 2. if individuals save more as a result of opening an account. 
+
+The authors partnered with a rural bank in Mindanao, Philippines called Green Bank of Caraga. After two rounds of randomization, they ended up with a survey size of 1,777 people who completed a baseline household survey. They then randomly assigned the individuals to the commitment treatment (T), marketing-treatment (M), and control (C) groups. One concern is that the commitment-savings may have a treatment effect because of the outreach or positive messaging around savings. The marketing treatment (M), a special visit to encourage savings using existing savings products only, was included to evaluate this effect. The marketing-treatment can also be thought of as a control. No pre-treatment observable differences between the three groups were statistically significantly different. 
+
+The two main outcomes of interest are 1. take-up of the commitment savings product and 2. savings at the financial institution. The authors use the baseline household survey to evaluate if there are any predictors to take-up. Savings balances at the institution, and not just in the commitment savings account, partially accounts for crowd-out to other savings vehicles. We focus exclusively on question 2.
+
+For the first question, the authors find that individuals open the accounts when offered. They also find that women are statistically significantly more likely to open accounts if they have hyperbolic preferences. They did not find a significant result for men. People have hyperbolic preferences if they exhibit a high discount rate in the immediate future and a lower discount rate further in the future. Accordingly, these individuals can improve their welfare with a commitment savings device. We do not examine these results. 
+
+For the second question, the authors find that average savings increased by 81 percent for those in the treatment group relative to the control group after twelve months. The effect is significant at the $\alpha = 0.1$ level; however, the outcome variable is highly positively skewed.
+
+The authors also estimate quantile regressions at the 10th through 90th deciles. The estimated effects are significant after 12 months when comparing the commitment-savings group with the full control group. The statistical and practical significance disappears when comparing the commitment-savings group with the marketing group. 
+
+We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
+
+We conclude using paired comparisons that customers who had SEED accounts saw an increase in savings over the duration of the trial. We conclude using Tukey Permutation Honest Significant Difference tests that SEED accounts had more savings than the other two groups. Finally, using M-Estimation and rank-based and robust regression we find that SEED accounts had more savings than the other two groups; however, we find much smaller effect sizes than [@Ashraf2006].
+
+Section 2 describes and summarizes the analysis data. In section 3, we test the effectiveness of the SEED accounts on overall savings. In section 4, we test the effectiveness of the SEED accounts against the control group and the marketing treatment. In section 5, use use robust regression techniques to estimate linear regression models that are more appropriate in the presence of outliers. 
 
 ## 2. Summary of Data for Analysis
 
-```{r}
+The data and code for [@Ashraf2006] are available on the Harvard Dataverse [@Data]. The repository contains Stata `.do` files for all models and tables included in the authors' paper. 
+
+The repository contains three data sets. All three data sets include identifiers and certain demographic information. The first data set contains outcome information after six months. The second data set contains outcome information after twelve months. The third data set contains information about the change in balances after six months and twelve months. The authors did not include documentation for the numerous variables included in the data set. We recreated Table II, Table VI, and Table VII in `R` to back out the variable definitions and confirm that the published data match the published tables. 
+
+The authors began with a sample of 4,001 clients who have savings accounts in one of two bank branches in the greater Butuan City area and have identifiable addresses. A second randomization resulted in 3,154 potential surveys and 1,777 completed surveys. 
+
+The key outcomes of interest for this reanalysis, the change in balance after six months and the change in balance after twelve months, are both highly right skewed. 
+
+```{r histogram}
+#
+# Create a histogram to show the skew of balchange
+#
+skewa = six_months %>%
+  ggplot(aes(balchange)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 2000),
+                     labels = scales::comma) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal()
+
+skewb = treated %>%
+  ggplot(aes(balchange)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 2000),
+                     labels = scales::comma) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+Here is the same information as a kernel density estimate (KDE). 
+
+```{r density-plot}
+#
+# Create a density plot to show the skew of balchange
+#
+skewa = six_months %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal()
+
+skewb = treated %>%
+  ggplot(aes(balchange)) +
+  geom_density() +
+  scale_x_continuous(labels = scales::comma) +
+  scale_y_continuous(limits = c(0, 0.004)) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal()
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+The right skew is present in the treatment and control groups, but it most pronounced in the commit-savings treatment group after twelve months. 
+
+```{r skew-by-group}
+#
+# Create a plot to show the skew of balchange by group
+#
+skewa = six_months %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "The Dependent Variables Are Highly Right Skewed",
+       subtitle = "Six Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",       
+       y = NULL) +
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewb = treated %>%
+  ggplot(aes(balchange, y = group, color = group)) +
+  geom_point(alpha = 0.2) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "",
+       subtitle = "Twelve Month Change in Balance",
+       x = "Change in balance (Philippine Peso)",
+       y = NULL) +  
+  theme_minimal() +
+  guides(color = FALSE)
+
+skewa + skewb
+
+rm(skewa, skewb)
+
+```
+
+```{r subset-data}
 seed_accounts = treated %>% 
   filter(treatment == 1)
 nonseed = treated %>% 
   filter(treatment == 0)
-hist(seed_accounts$balchange,
-     main="Histogram of balance changes for SEED accounts",
-     xlab="Balance Change")
-
-filtered_seeds = seed_accounts %>% filter(balchange <=10000)
-hist(filtered_seeds$balchange,
-     main="Outliers removed balance changes for SEED accounts",
-     xlab="Balance Change")
-
-print("Summary statistics for Seed account balance changes")
-summary(seed_accounts$balchange)
-
-
-filtered_nonseeds = nonseed %>% filter(balchange<10000)
-hist(nonseed$balchange)
-hist(filtered_nonseeds$balchange)
 
 ```
 
@@ -147,15 +264,14 @@ The Wilcoxon Signed-Rank Test requires three assumptions:
 
 ### 3.2 Results
 
-```{r wilcox paired test}
+```{r wilcox-paired-test}
 wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
-```
 
+```
 
 ### 3.3 Discussion of Results
 
 As the p-value is significantly less than our $\alpha$ of $0.05$ we reject the null hypothesis in favor of the alternate hypothesis. We conclude that customers who had SEED accounts saw an increase in savings over the duration of the trial. It is worth noting that we have not yet shown that the SEED accounts are more effective savings accounts than other methods, just that customers were able to save with them.
-
 
 ## 4. Two-sample Test and K-Sample Test
 
@@ -188,8 +304,6 @@ To control for type one error we will use Bonferroni's adjustment for the paired
 
 Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the savings in the control group, the marketing group, and the SEED accounts respectively.
 
-
-
 ### 4.2 Results
 
 ```{r 2-sample}
@@ -199,7 +313,7 @@ fp_result
 ```
 
 
-```{r Tukey HSD setup}
+```{r Tukey-HSD-setup}
 # Helper functions
 comp_sum = function(val, t1){
 # Helper function for Mann-Whitney stat
@@ -228,7 +342,6 @@ general_stat_perm= function(full_data, n_s, stat_func){
   return(stat_func(dataset))
 }
 
-
 calculate_critical = function(stat_dist, alpha){
   # stat_dist is sorted
   R = length(stat_dist)
@@ -242,8 +355,7 @@ calculate_critical = function(stat_dist, alpha){
 
 ```
 
-
-```{r Tukey HSD}
+```{r Tukey-HSD}
 
 seed_balchange = seed_accounts$balchange
 marketing_balchange = treated %>% 
@@ -310,8 +422,7 @@ print(p_message)
 
 ```
 
-
-```{r}
+```{r pairwise-results}
 m = matrix(NA, k, k, 
            dimnames = list(
              names(treat_list),
@@ -326,14 +437,12 @@ for (row in names(treat_list)){
 }
 print("pairwise statistics greater than or equal to the adjusted alpha critical value")
 print(m >= crit_adj)
+
 ```
-
-
 
 ### 4.3 Discussion of Results
 
 A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
-
 
 A p-value of `r p_val` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
 
@@ -343,77 +452,13 @@ The matrix shows that the SEED accounts had better savings than the control grou
 
 [@Ashraf2006] estimate regression models with change in savings account balance as the dependent variable and the different treatments and controls as independent variables. This is to estimate the intent-to-treat effect (ITT) of the commitment savings account--that is the effect on account balances of being offered the commitment savings account versus not being offered the account or being offered the marketing treatment instead. 
 
-The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
+The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months as demonstrated in [todo(aaron): add plot number from above]. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
 
-```{r}
-#
-# Create a plot to show the skew of balchange
-#
-skewa = six_months %>%
-  ggplot(aes(balchange)) +
-  geom_density() +
-  scale_x_continuous(labels = scales::comma) +
-  scale_y_continuous(limits = c(0, 0.004)) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
-       subtitle = "Six Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",       
-       y = NULL) +
-  theme_minimal()
+[todo(aaron): add plot number from above] The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
 
-skewb = treated %>%
-  ggplot(aes(balchange)) +
-  geom_density() +
-  scale_x_continuous(labels = scales::comma) +
-  scale_y_continuous(limits = c(0, 0.004)) +
-  labs(title = "",
-       subtitle = "Twelve Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",
-       y = NULL) +  
-  theme_minimal()
+A normal distribution and ordinary least squares regression do not seem appropriate in this situation. One option is to transform the outcome variable before estimation so that normal-theory methods can be applied to the data. A log transformation would be appropriate but the presence of non-positive numbers would lead to an undefined outcome. An inverse hyperbolic sine transformation [@Burbidge] or Yeo-Johnson transformation [@Yeo] could result in a similar transformation to a log transformation and be robust to non-positive numbers. 
 
-skewa + skewb
-
-rm(skewa, skewb)
-
-```
-
-The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
-
-```{r}
-#
-# Create a plot to show the skew of balchange by group
-#
-skewa = six_months %>%
-  ggplot(aes(balchange, y = group, color = group)) +
-  geom_point(alpha = 0.2) +
-  scale_x_continuous(labels = scales::comma) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
-       subtitle = "Six Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",       
-       y = NULL) +
-  theme_minimal() +
-  guides(color = FALSE)
-
-skewb = treated %>%
-  ggplot(aes(balchange, y = group, color = group)) +
-  geom_point(alpha = 0.2) +
-  scale_x_continuous(labels = scales::comma) +
-  labs(title = "",
-       subtitle = "Twelve Month Change in Balance",
-       x = "Change in balance (Philippine Peso)",
-       y = NULL) +  
-  theme_minimal() +
-  guides(color = FALSE)
-
-skewa + skewb
-
-rm(skewa, skewb)
-
-# measure of outliers from 611?
-
-```
-
-[@Ashraf2006] found only modest evidence for a statistically significant intent-to-treat (ITT) effect for the commitment savings accounts using ordinary least squares regression (OLS). Furthermore, they found that the differential effect of being offered the commitment savings product beyond being offered only a marketing treatment was indistinguishable from zero. 
+[@Ashraf2006] estimate their models on the untransformed data and find only modest evidence for a statistically significant intent-to-treat (ITT) effect for the commitment savings accounts using ordinary least squares regression (OLS). Furthermore, they found that the differential effect of being offered the commitment savings product beyond being offered only a marketing treatment was indistinguishable from zero. 
 
 The authors state: 
 
@@ -429,7 +474,7 @@ The authors then estimate probit models on the twelve month data and find statis
 
 We first explore their constructed variables and then we offer an alternative approach. A closer look at the data show that many balances decreased or remained the same and only a fraction of balances increased after twelve months.
 
-```{r}
+```{r balchange-direction}
 #
 # Count the types of change in balchange
 # 
@@ -452,7 +497,7 @@ count(treated, change) %>%
 
 Importantly, inside the treatment group, more balances decreased than increased in the 12 month window. 
 
-```{r}
+```{r blachange-direction-by-group}
 count(treated, group, change) %>%
   pivot_wider(names_from = change,
               values_from = n) %>%
@@ -462,7 +507,7 @@ count(treated, group, change) %>%
 
 The story is even more dramatic for the 20 percent increase outcome variable. 
 
-```{r}
+```{r porbit-dependent-vars}
 count(treated, frac_change_20) %>%
   pivot_wider(names_from = frac_change_20,
               values_from = n) %>%
@@ -489,9 +534,7 @@ $$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N (Y_i - \hat{Y_i})^2$$
 
 The square in this optimization gives extra weight to outliers. In this case, all of the outliers are positive and the squared term will result in an estimated intercept and estimated coefficients that are further from zero in the positive direction. 
 
-Regression with M-estimation estimates coefficients, $\vec{\hat{\beta}}$, that minimize standardized residuals where outliers receive less weight
-
-todo(aaron): citation
+Regression with M-estimation [@Huber1964] estimates coefficients, $\vec{\hat{\beta}}$, that minimize standardized residuals where outliers receive less weight
 
 $$\min_{\vec{\hat{\beta}}} \sum_{i = 1}^N \rho\left(\frac{Y_i - \hat{Y_i}}{\hat{\sigma}_i}\right)$$
 
@@ -516,11 +559,10 @@ Like [@Ashraf2006], we estimate the intent-to-treat (ITT) effect with the change
 
 We begin by recreating half of Table VI from [@Ashraf2006]. All models are estimated using ordinary least squares regression and the standard errors are HC1 heteroskedasticity-robust standard errors [@MacKinnon1985].
 
-```{r results = "asis"}
+```{r ols-model, results = "asis"}
 #
 # OLS model
 #
-six_months = filter(seed011204, !is.na(treatment))
 
 # column 1
 lm1 = lm(balchange ~ treatment + marketing, data = six_months) 
@@ -552,7 +594,7 @@ stargazer::stargazer(lm1, lm2, lm3, lm4,
 
 We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-```{r results = "asis"}
+```{r mestimation-model, results = "asis"}
 #
 # M-Estimation model
 #
@@ -582,7 +624,7 @@ stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
 
 We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
-```{r results = "asis"}
+```{r rank-based-regression, results = "asis"}
 #
 # Robust and rank-based regression
 #
@@ -620,7 +662,30 @@ stargazer::stargazer(
 
 ### 5.3 Discussion of Results
 
-M-estimation and robust rank-based regression lead to very different results than ordinary least squares. 
+The models estimated with OLS have residuals that are highly skewed. The following QQ plots demonstrate that many of the residuals are approximately normally distributed, as they fall on the diagonal line. However, the residuals dramatically depart the line at higher values. 
+
+```{r residual-plot}
+resid1 = augment(lm3) %>%
+  ggplot(aes(sample = .resid)) +
+  geom_qq(alpha = 0.2) +
+  geom_qq_line() +
+  theme_minimal() +
+  labs(title = "The Estimated Model has Significant Outliers",
+       subtitle = "QQ Plot for OLS (3)")
+
+resid2 = augment(lm3) %>%
+  ggplot(aes(sample = .resid)) +
+  geom_qq(alpha = 0.2) +
+  geom_qq_line() +
+  theme_minimal() +
+  labs(title = "",
+       subtitle = "QQ Plot for OLS (4)")
+
+resid1 + resid2
+
+```
+
+Accordingly, M-estimation and robust rank-based regression lead to very different results than ordinary least squares. 
 
 The weight of the positive outliers leads to a positive estimated intercept and larger estimated coefficients for the treatments in the OLS model. The other two models, which are more robust to outliers, have negative estimated intercepts and estimated coefficients for the treatments that are much closer to zero. For M-estimation and robust ranked based regression, the estimated intercepts are negative and the coefficients, while positive, are smaller in magnitude than the OLS model. That means the conditional means for the commitment savings group, the marketing control group, and the control group are all negative.
 
@@ -628,7 +693,7 @@ The skewed distribution and outliers lead to dramatically larger standard errors
 
 The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
 
-```{r}
+```{r visualize-models}
 #
 # Visualize column (3)
 #
@@ -675,7 +740,7 @@ coefficients %>%
 
 The following data visualization compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
 
-```{r}
+```{r visualize-models2}
 #
 # Visualize column (4)
 #
