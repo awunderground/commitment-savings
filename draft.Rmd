@@ -328,6 +328,7 @@ mw_stat = function(t1, t2){
   return(sum(comp_sums))
 }
 
+
 general_stat_perm= function(full_data, n_s, stat_func){
   # stat_func should take in a list of 
   dataset = list()
@@ -403,13 +404,11 @@ sample_q = sort(sample_q, decreasing = TRUE)
 
 alpha = 0.05
 adjusted_alpha = 2*alpha/ (k*(k-1))
-print(sprintf("Alpha of %s leads to an adjusted alpha of %s", alpha, adjusted_alpha))
-
 
 crit_alpha = calculate_critical(sample_q, alpha)
 crit_adj = calculate_critical(sample_q, adjusted_alpha)
-crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
-print(crit_message)
+# crit_message = sprintf("critical values of significance levels %s and %s are %s and %s respectively", alpha, adjusted_alpha, crit_alpha, crit_adj)
+# print(crit_message)
 
 q_obs = q_star(treat_list)
 obs_message = sprintf("The observed value of Q* is: %s", q_obs)
@@ -432,11 +431,15 @@ m = matrix(NA, k, k,
 
 for (row in names(treat_list)){
   for(col in names(treat_list)){
-    m[row,col] = mw_stat(treat_list[[row]], treat_list[[col]])
+    m[row,col] = wilcox.test(
+      treat_list[[row]],
+      treat_list[[col]],
+      alternative="greater")$p.value
   }
 }
-print("pairwise statistics greater than or equal to the adjusted alpha critical value")
-print(m >= crit_adj)
+#print("pairwise statistics greater than or equal to the adjusted alpha critical value")
+comparison_matrix = as.table(m <= adjusted_alpha)
+knitr::kable(comparison_matrix, caption="Significant difference found in pairwise comparison.")
 
 ```
 
