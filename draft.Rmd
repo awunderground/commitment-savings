@@ -335,7 +335,7 @@ We will use the Kruskal-Wallis Test to conduct a multiple comparison test of the
 2. The members of the three treatments are drawn from the same population.
 3. The three distributions only differ in position parameter
 
-We are clearly comfortable with the first two assumptions. We are comfortable with the third assumption, because outliers aside, the we can see in the data exploration section that the three treatments are all tightly clustered around 0.
+We are clearly comfortable with the first two assumptions. We are comfortable with the third assumption, because outliers aside, the we can see in Figure 4 that three treatments have similar spreads after the significant outliers are removed.
 
 We will conduct this test at a significance level of $\alpha=0.05$ with the following hypothesis.
 
@@ -347,7 +347,7 @@ Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the
 
 Additionally, we will conduct a pairwise comparison test using the Wilcoxon Rank sum test as the underlying test to identify the specific pairs that might be the source of the difference.
 
-To control for type one error we will use Bonferroni's adjustment for the paired tests. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
+If we were doing a pairwise comparison test to determine the existance of a difference, we would use Bonferroni's adjustment for the paired tests to control for type one error. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins].  However, we will only be using the pairwise comparison after the k-sample Kruskal-Wallis test, so we do not need to be concerned with it here.
 
 ### 4.2 Results
 
@@ -425,8 +425,11 @@ for (row in names(treat_list)){
   }
 }
 
-as.table(m <= adjusted_alpha) %>%
-  kable(caption = "Significant difference found in\n
+as.table(m) %>%
+  kable(caption = "P-value for paired onesided Wilcoxon test")
+
+as.table(m <= alpha) %>%
+  kable(caption = "Significant difference found in
         pairwise comparison with Wilcoxon Test.")
 
 ```
@@ -435,9 +438,9 @@ as.table(m <= adjusted_alpha) %>%
 
 A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we reject the null hypothesis in favor of the alternate. We conclude that the median savings for SEED accounts is higher an for non-SEED accounts.
 
-A p-value of `r kw_result$p.value` for the Tukey HSD permutation test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
+A p-value of `r kw_result$p.value` for the Kruskal-Wallis Test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
 
-The matrix shows that the SEED accounts had better savings than the control group, but not the marketing groups. No other differences were significant. This allows us to conclude that the SEED accounts had better savings than the control, but are not significantly more effective than the marketing groups. This is a contradiction to the original paper.
+Tables 4 and 5 show a significant difference in three one-sided comparisons tests. We can reasonably conclude that the SEED accounts perform better than the control groups and the marketing treatment. However, it is worth noting that if we used the Bonferroni adjustment for alpha, we would only mark a significant difference between the seed and control groups.
 
 ## 5. Robust Regression
 
@@ -623,8 +626,6 @@ stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
 
 ```
 
-We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) in \textit{table 11} shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
-
 ```{r rank-based-regression, results = "asis"}
 #
 # Robust and rank-based regression
@@ -665,6 +666,8 @@ stargazer::stargazer(
 )
 
 ```
+
+We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) in \textit{table 11} and \text{table 12} shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
 ### 5.3 Discussion of Results
 
@@ -796,6 +799,9 @@ coefficients %>%
 
 ## Conclusion
 
+In most cases our findings are aligned with the original paper. In section 3 we conclude that the SEED accounts are effective savings mechanisms, agreeing with the original authors. In section 4 we conclude that there is a difference between the three different treatments, but make a note that depending on the significance level employed we have reason to doubt that there is a difference between the marketing treatment and the SEED accounts. The tests concluded a difference, but further study is warranted. In section 5 we used different regression techniques from the original paper, as the authors had done a good bit of massaging to make OLS work. While the non parametric methods did conclude statistical siginificance of the SEED treatments over the marketing treatments, the coefficients determined by the methods were significantly lower. Leading us to conclude that while there is a statistically significant effect of the SEED accounts on savings compared to the marketing treatment, there is not necessarily a practically significant effect.
+
+Overall, we conclude that the SEED accounts are effective saving mechanisms, with some marginal benefits over marketing treatments. However, like the authors of the original paper, we also recommend further study into the true effectiveness of the accounts, and how large the difference is between them and other potential marketing strategies.
 
 
 
