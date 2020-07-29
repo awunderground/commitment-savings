@@ -114,7 +114,7 @@ The authors also estimate quantile regressions at the 10th through 90th deciles.
 
 We conduct a reanalysis using data shared by the authors using nonparametric methods. Parametric statistical methods, such as many of the methods used by the authors, require completely specifying the form of the population distribution of interest except for a finite number of parameters [@Higgins]. In contrast, nonparametric statistical methods require minimal assumptions about the population distribution. In this case, nonparametric methods will be more robust to skew in the outcome variable of interest. 
 
-We conclude using paired comparisons that customers who had SEED accounts saw an increase in savings over the duration of the trial. We conclude using Kruskal-Wallis tests that SEED accounts had more savings than the other two groups. Finally, using M-Estimation and rank-based and robust regression we find that SEED accounts had more savings than the other two groups; however, we find much smaller effect sizes than [@Ashraf2006].
+We conclude using paired comparisons that customers who had SEED accounts saw an increase in savings over the duration of the trial. We conclude using Kruskal-Wallis tests that there exists a difference within the three groups. Finally, using M-Estimation and rank-based and robust regression we find that SEED accounts had more savings than the other two groups; however, we find much smaller effect sizes than [@Ashraf2006].
 
 Section 2 describes and summarizes the analysis data. In section 3, we test the effectiveness of the SEED accounts on overall savings. In section 4, we test the effectiveness of the SEED accounts against the control group and the marketing treatment. In section 5, use use robust regression techniques to estimate linear regression models that are more appropriate in the presence of outliers. 
 
@@ -347,7 +347,7 @@ Where $\theta_x, \theta_y, \theta_z$ are the medians of the distributions of the
 
 Additionally, we will conduct a pairwise comparison test using the Wilcoxon Rank sum test as the underlying test to identify the specific pairs that might be the source of the difference.
 
-If we were doing a pairwise comparison test to determine the existance of a difference, we would use Bonferroni's adjustment for the paired tests to control for type one error. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins].  However, we will only be using the pairwise comparison after the k-sample Kruskal-Wallis test, so we do not need to be concerned with it here.
+To control for type one error we will use Bonferroni's adjustment for the paired tests. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins].
 
 ### 4.2 Results
 
@@ -428,7 +428,7 @@ for (row in names(treat_list)){
 as.table(m) %>%
   kable(caption = "P-value for paired onesided Wilcoxon test")
 
-as.table(m <= alpha) %>%
+as.table(m <= adjusted_alpha) %>%
   kable(caption = "Significant difference found in
         pairwise comparison with Wilcoxon Test.")
 
@@ -440,7 +440,7 @@ A p-value of `r fp_result$p.val` for the Fligner-Policello Test means that we re
 
 A p-value of `r kw_result$p.value` for the Kruskal-Wallis Test leads us to reject the null hypothesis in favor of the alternative. We conclude that there is a difference in savings between at least two of the groups. 
 
-Tables 4 and 5 show a significant difference in three one-sided comparisons tests. We can reasonably conclude that the SEED accounts perform better than the control groups and the marketing treatment. However, it is worth noting that if we used the Bonferroni adjustment for alpha, we would only mark a significant difference between the seed and control groups.
+Tables 4 and 5 show a significant difference in the SEED accounts versus the control group. Therefore, we can reasonably conclude that the SEED accounts perform better than the control group. However, it is worth noting that under the Bonferroni adjustment for alpha, we do not mark a significant difference between marketing and control, or SEED and marketing.
 
 ## 5. Robust Regression
 
@@ -801,7 +801,7 @@ coefficients %>%
 
 ## Conclusion
 
-In most cases, the conclusions of our tests aligned with the original paper. In section 3 we conclude that the SEED accounts are effective savings mechanisms, agreeing with the original authors. In section 4 we conclude that there is a difference between the three different treatments, but make a note that depending on the significance level employed we have reason to doubt that there is a difference between the marketing treatment and the SEED accounts. The tests concluded a difference, but further study is warranted. In section 5 we used different regression techniques from the original paper, as the authors had done a good bit of massaging to make OLS work. While the nonparametric methods did conclude statistical significance of the SEED treatments over the marketing treatments, the coefficients determined by the methods were significantly lower. Leading us to conclude that while there is a statistically significant effect of the SEED accounts on savings compared to the marketing treatment, there is not necessarily a practically significant effect.
+In most cases, the conclusions of our tests aligned with the original paper. In section 3 we conclude that the SEED accounts are effective savings mechanisms, agreeing with the original authors. In section 4 we conclude that there is a difference within the three treatments, but we make a note that we could not determine a significant difference between the SEED accounts and the marketing group. The tests concluded a difference overall, but further study is warranted. In section 5 we used different regression techniques from the original paper, as the authors had done a good bit of massaging to make OLS work. While the nonparametric methods did conclude statistical significance of the SEED treatments over the marketing treatments, the coefficients determined by the methods were significantly lower. Leading us to conclude that while there is a statistically significant effect of the SEED accounts on savings compared to the marketing treatment, there is not necessarily a practically significant effect.
 
 Overall, we conclude that the SEED accounts are modestly effective saving mechanisms, with some marginal benefits over marketing treatments. However, like the authors of the original paper, we also recommend further study into the true effectiveness of the accounts, and how large the difference is between them and other potential marketing strategies.
 
