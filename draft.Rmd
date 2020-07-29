@@ -6,7 +6,7 @@ header-includes:
    - \usepackage{algorithmic}
 output:
   pdf_document
-fontsize: 10pt 
+fontsize: 12pt 
 editor_options: 
   chunk_output_type: console
 bibliography: references.bib  
@@ -30,11 +30,12 @@ library(tidyverse)
 library(haven) # reading Stata data
 library(MASS) # M-estimation
 library(Rfit) # rank-based regression
-library(patchwork)
-library(broom)
-library(sandwich)
-library(lmtest)
+library(patchwork) # for combining ggplot2s
+library(broom) # for tidying regression output
+library(sandwich) # for HC1 robust standard errors
+library(lmtest) # for HC1 robust standard errors
 library(NSM3)
+library(knitr) # for tables
 
 ```
 
@@ -125,7 +126,7 @@ The repository contains three data sets. All three data sets include identifiers
 
 The authors began with a sample of 4,001 clients who have savings accounts in one of two bank branches in the greater Butuan City area and have identifiable addresses. A second randomization resulted in 3,154 potential surveys and 1,777 completed surveys. 
 
-The key outcomes of interest for this reanalysis, the change in balance after six months and the change in balance after twelve months, are both highly right skewed. 
+The key outcomes of interest for this reanalysis, the change in balance after six months and the change in balance after twelve months, are both highly right skewed as demonstrated in \textit{figure 1}. 
 
 ```{r histogram}
 #
@@ -137,7 +138,7 @@ skewa = six_months %>%
   scale_x_continuous(labels = scales::comma) +
   scale_y_continuous(limits = c(0, 2000),
                      labels = scales::comma) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
+  labs(title = "Figure 1: The Dependent Variables Are Highly Right Skewed",
        subtitle = "Six Month Change in Balance",
        x = "Change in balance (Philippine Peso)",       
        y = NULL) +
@@ -164,7 +165,7 @@ rm(skewa, skewb)
 
 ```
 
-Here is the same information as a kernel density estimate (KDE). 
+\textit{Figure 2} displays the same data as \textit{figure 1} as a kernel density estimate (KDE). 
 
 ```{r density-plot}
 #
@@ -175,7 +176,7 @@ skewa = six_months %>%
   geom_density() +
   scale_x_continuous(labels = scales::comma) +
   scale_y_continuous(limits = c(0, 0.004)) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
+  labs(title = "Figure 2: The Dependent Variables Are Highly Right Skewed",
        subtitle = "Six Month Change in Balance",
        x = "Change in balance (Philippine Peso)",       
        y = NULL) +
@@ -199,7 +200,7 @@ rm(skewa, skewb)
 
 ```
 
-The right skew is present in the treatment and control groups, but it most pronounced in the commit-savings treatment group after twelve months. 
+The right skew is present in the treatment and control groups, but it most pronounced in the commit-savings treatment group after twelve months as demonstrated in \textit{figure 3}. 
 
 ```{r skew-by-group}
 #
@@ -209,7 +210,7 @@ skewa = six_months %>%
   ggplot(aes(balchange, y = group, color = group)) +
   geom_point(alpha = 0.2) +
   scale_x_continuous(labels = scales::comma) +
-  labs(title = "The Dependent Variables Are Highly Right Skewed",
+  labs(title = "Figure 3: The Dependent Variables Are Highly Right Skewed",
        subtitle = "Six Month Change in Balance",
        x = "Change in balance (Philippine Peso)",       
        y = NULL) +
@@ -244,7 +245,7 @@ skewc = treated %>%
   ggplot(aes(balchange, y = group, color = group)) +
   geom_point(alpha=0.2) +
   scale_x_continuous(labels = scales::comma) +
-  labs(title = "Variance by treatment having removed significant outliers",
+  labs(title = "Figure 4: Variance by treatment having removed significant outliers",
        x = "Change in balance (Philippine Peso)",
        y = NULL) +  
   theme_minimal()
@@ -291,7 +292,17 @@ The Wilcoxon Signed-Rank Test requires three assumptions:
 ### 3.2 Results
 
 ```{r wilcox-paired-test}
-wilcox.test(seed_accounts$totbal, seed_accounts$newtotbal,alternative = "greater", paired=TRUE)
+wilcox_test = wilcox.test(seed_accounts$totbal,
+                          seed_accounts$newtotbal,
+                          alternative = "greater", 
+                          paired = TRUE)
+
+
+tibble(
+  Metric = c("Test Statistic", "P-Value"),
+  Value = c(wilcox_test$statistic, wilcox_test$p.value)
+) %>%
+  kable(caption = "Wilcoxon Signed-Rank Test Results")
 
 ```
 
@@ -338,27 +349,40 @@ Additionally, we will conduct a pairwise comparison test using the Wilcoxon Rank
 
 To control for type one error we will use Bonferroni's adjustment for the paired tests. Giving an adjusted alpha of $\alpha' = \frac{2\alpha}{k(k-1)} = `r 2 * 0.05 / (3 * (3 - 1))`$[@Higgins]
 
-
-
 ### 4.2 Results
 
 #### Fligner-Policello Results
 
 ```{r 2-sample}
+#
+# Fligner-Policello test
+#
 x = list(nonseed$balchange, seed_accounts$balchange)
 fp_result = pFligPoli(x, method="Monte Carlo")
-fp_result
+
+tibble(
+  Metric = c("Fligner-Policello U Statistic", "two-sided p-value"),
+  Value = c(fp_result$obs.stat, fp_result$two.sided)
+) %>%
+  kable(caption = "Fligner-Policello Test Results")
+
 ```
 
+Test conducted with `r fp_result$m` X values, `r fp_result$n` Y values, and 10000 iterations.
 
 #### Kruskal-Wallis Results
 
-```{r Tukey-HSD}
+```{r kruskal-wallis}
+#
+# Kruskal-Wallis test
+#
 
 seed_balchange = seed_accounts$balchange
+
 marketing_balchange = treated %>% 
   filter(marketing==1)%>%
   pull(balchange)
+
 control_balchange = treated %>% 
   filter(control==1, marketing==0) %>%
   pull(balchange)
@@ -375,7 +399,12 @@ alpha = 0.05
 adjusted_alpha = 2*alpha/ (k*(k-1))
 
 kw_result = kruskal.test(treat_list)
-kw_result
+
+tibble(
+  Metric = c("Chi-Squared", "Degrees Freedom", "P-Value"),
+  Value = c(kw_result$statistic, kw_result$parameter, kw_result$p.value)
+) %>%
+  kable(caption = "Kruskal-Wallis Test Results")
 
 ```
 
@@ -395,11 +424,10 @@ for (row in names(treat_list)){
       alternative="greater")$p.value
   }
 }
-#print("pairwise statistics greater than or equal to the adjusted alpha critical value")
-comparison_matrix = as.table(m <= adjusted_alpha)
-knitr::kable(comparison_matrix, caption="Significant difference found in pairwise comparison with Wilcoxon Test.")
 
-
+as.table(m <= adjusted_alpha) %>%
+  kable(caption = "Significant difference found in\n
+        pairwise comparison with Wilcoxon Test.")
 
 ```
 
@@ -415,9 +443,9 @@ The matrix shows that the SEED accounts had better savings than the control grou
 
 [@Ashraf2006] estimate regression models with change in savings account balance as the dependent variable and the different treatments and controls as independent variables. This is to estimate the intent-to-treat effect (ITT) of the commitment savings account--that is the effect on account balances of being offered the commitment savings account versus not being offered the account or being offered the marketing treatment instead. 
 
-The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months as demonstrated in [todo(aaron): add plot number from above]. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
+The dependent variable, change in savings account balance, is highly right-skewed after six months and twelve months as demonstrated in \textit{figure 2}. Accordingly, the dependent variable is not approximately normally distributed and the error term of their estimated models is not approximately normally distributed.
 
-[todo(aaron): add plot number from above] The SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
+As \textit{figure 3} demonstrated, the SEED treatment, the marketing control, and the full control all have outliers. Though the SEED treatment's outliers are distinct for the change in twelve month balance. 
 
 A normal distribution and ordinary least squares regression do not seem appropriate in this situation. One option is to transform the outcome variable before estimation so that normal-theory methods can be applied to the data. A log transformation would be appropriate but the presence of non-positive numbers would lead to an undefined outcome. An inverse hyperbolic sine transformation [@Burbidge] or Yeo-Johnson transformation [@Yeo] could result in a similar transformation to a log transformation and be robust to non-positive numbers. 
 
@@ -454,7 +482,7 @@ treated =  treated %>%
 count(treated, change) %>%
   pivot_wider(names_from = change,
               values_from = n) %>%
-  knitr::kable(caption = "Change in Balance After Twelve Months")
+  kable(caption = "Change in Balance After Twelve Months")
 
 ```
 
@@ -464,7 +492,7 @@ Importantly, inside the treatment group, more balances decreased than increased 
 count(treated, group, change) %>%
   pivot_wider(names_from = change,
               values_from = n) %>%
-  knitr::kable(caption = "Change in Balance After Twelve Months by Treatment Group")
+  kable(caption = "Change in Balance After Twelve Months by Treatment Group")
 
 ```
 
@@ -476,14 +504,14 @@ count(treated, frac_change_20) %>%
               values_from = n) %>%
   rename(`20%+ Increase` = `1`,
          `<20% Increase` = `0`) %>%
-  knitr::kable(caption = "20+% Change in Balance After Twelve Months")
+  kable(caption = "20+% Change in Balance After Twelve Months")
 
 count(treated, group, frac_change_20) %>%
   pivot_wider(names_from = frac_change_20,
               values_from = n) %>%  
   rename(`20%+ Increase` = `1`,
          `<20% Increase` = `0`) %>%  
-  knitr::kable(caption = "20+% Change in Balance After Twelve Months")
+  kable(caption = "20+% Change in Balance After Twelve Months")
 
 ```
 
@@ -555,7 +583,7 @@ stargazer::stargazer(lm1, lm2, lm3, lm4,
 
 ```
 
-We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+We estimate identical specifications to [@Ashraf2006] using M-estimation. Column (1) in \textit{table 10} shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
 ```{r mestimation-model, results = "asis"}
 #
@@ -563,17 +591,27 @@ We estimate identical specifications to [@Ashraf2006] using M-estimation. Column
 #
 
 # column 1
-m_model1 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = six_months)
+m_model1 = rlm(balchange ~ treatment + marketing, 
+               method = "M", 
+               psi = psi.bisquare, 
+               data = six_months)
 
 # column 2
-m_model2 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+m_model2 = rlm(balchange ~ treatment, 
+               method = "M", 
+               psi = psi.bisquare, 
                data = filter(six_months, group %in% c("M", "T")))
 
 # column 3
-m_model3 = rlm(balchange ~ treatment + marketing, method = "M", psi = psi.bisquare, data = treated)
+m_model3 = rlm(balchange ~ treatment + marketing,
+               method = "M", 
+               psi = psi.bisquare, 
+               data = treated)
 
 # column 4
-m_model4 = rlm(balchange ~ treatment, method = "M", psi = psi.bisquare, 
+m_model4 = rlm(balchange ~ treatment, 
+               method = "M", 
+               psi = psi.bisquare, 
                data = filter(treated, group %in% c("M", "T")))
 
 stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
@@ -585,7 +623,7 @@ stargazer::stargazer(m_model1, m_model2, m_model3, m_model4,
 
 ```
 
-We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
+We estimate identical specifications to [@Ashraf2006] using robust and rank-based regressions. Column (1) in \textit{table 11} shows the change in balance after six months including all observations. The coefficients estimate the additional savings of the corresponding treatment over the control group. Column (2) shows the change in balance after six months using only the commitment savings group and the marketing group. Column (3) is similar to column (1), only it uses the twelve month change in balance. Likewise, column (4) is similar to column (2), only it uses the twelve month change in balance.
 
 ```{r rank-based-regression, results = "asis"}
 #
@@ -593,14 +631,16 @@ We estimate identical specifications to [@Ashraf2006] using robust and rank-base
 #
 
 # column 1
-rank_model1 = rfit(balchange ~ treatment + marketing, data = six_months)
+rank_model1 = rfit(balchange ~ treatment + marketing, 
+                   data = six_months)
 
 # column 2
 rank_model2 = rfit(balchange ~ treatment, 
                    data = filter(six_months, group %in% c("M", "T")))
 
 # column 3
-rank_model3 = rfit(balchange ~ treatment + marketing, data = treated)
+rank_model3 = rfit(balchange ~ treatment + marketing, 
+                   data = treated)
 
 # column 4
 rank_model4 = rfit(balchange ~ treatment, 
@@ -609,7 +649,10 @@ rank_model4 = rfit(balchange ~ treatment,
 
 stargazer::stargazer(
   m_model1, m_model2, m_model3, m_model4,
-  coef = list(coef(rank_model1), coef(rank_model2), coef(rank_model3), coef(rank_model4)),
+  coef = list(coef(rank_model1), 
+              coef(rank_model2), 
+              coef(rank_model3), 
+              coef(rank_model4)),
   se = list(coef(summary(rank_model1))[, 2],
             coef(summary(rank_model2))[, 2],
             coef(summary(rank_model3))[, 2],
@@ -625,7 +668,7 @@ stargazer::stargazer(
 
 ### 5.3 Discussion of Results
 
-The models estimated with OLS have residuals that are highly skewed. The following QQ plots demonstrate that many of the residuals are approximately normally distributed, as they fall on the diagonal line. However, the residuals dramatically depart the line at higher values. 
+The models estimated with OLS have residuals that are highly skewed. \textit{Figure 5} displays QQ plots that demonstrate that many of the residuals are approximately normally distributed, as they fall on the diagonal line. However, the residuals dramatically depart the line at higher values. 
 
 ```{r residual-plot}
 resid1 = augment(lm3) %>%
@@ -633,7 +676,7 @@ resid1 = augment(lm3) %>%
   geom_qq(alpha = 0.2) +
   geom_qq_line() +
   theme_minimal() +
-  labs(title = "The Estimated Model has Significant Outliers",
+  labs(title = "Figure 5: The Estimated Model has Significant Outliers",
        subtitle = "QQ Plot for OLS (3)")
 
 resid2 = augment(lm3) %>%
@@ -654,7 +697,7 @@ The weight of the positive outliers leads to a positive estimated intercept and 
 
 The skewed distribution and outliers lead to dramatically larger standard errors and confidence intervals for the OLS model than the two models that are robust to outliers. Interestingly, this means that more coefficients are statistically significant with M-estimation and robust rank-based regression than with OLS regression even though the effect sizes are much smaller. While the intent-to-treat effect is statistically significantly different than zero, the effect sizes are so small that the practical significance is limited. 
 
-The following data  compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
+\textit{Figure 6} compares the estimated coefficients and confidence intervals from column (3) for all three model types. 
 
 ```{r visualize-models}
 #
@@ -684,7 +727,8 @@ coefficients = bind_rows(
 coefficients %>%
   mutate(conf.low = estimate - qnorm(0.025) * std.error,
          conf.high = estimate + qnorm(0.025) * std.error) %>%
-  mutate(model = factor(model, levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
+  mutate(model = factor(model, 
+                        levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
   ggplot(aes(x = estimate, 
              y = model,
              xmin = conf.low,
@@ -693,7 +737,7 @@ coefficients %>%
   geom_pointrange() +
   geom_vline(xintercept = 0, alpha = 0.5) +
   facet_wrap(~term, scales = "free_x") +
-  labs(title = "Model Choice Affects Estimated Coefficients",
+  labs(title = "Figure 6: Model Choice Affects Estimated Coefficients",
        x = "Estimated Beta and 95% Confidence Interval",
        y = NULL) +
   theme_bw() +
@@ -701,7 +745,7 @@ coefficients %>%
 
 ```
 
-The following data visualization compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
+\textit{Figure 7} compares the estimated coefficients and confidence intervals from column (4) for all three model types. 
 
 ```{r visualize-models2}
 #
@@ -732,7 +776,8 @@ coefficients = bind_rows(
 coefficients %>%
   mutate(conf.low = estimate - qnorm(0.025) * std.error,
          conf.high = estimate + qnorm(0.025) * std.error) %>%
-  mutate(model = factor(model, levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
+  mutate(model = factor(model, 
+                        levels = c("Rank-Based\nModel", "M Model", "OLS Model"))) %>%
   ggplot(aes(x = estimate, 
              y = model,
              xmin = conf.low,
@@ -741,7 +786,7 @@ coefficients %>%
   geom_pointrange() +
   geom_vline(xintercept = 0, alpha = 0.5) +
   facet_wrap(~term, scales = "free_x") +
-  labs(title = "Model Choice Affects Estimated Coefficients",
+  labs(title = "Figure 7: Model Choice Affects Estimated Coefficients",
        x = "Estimated Beta and 95% Confidence Interval",
        y = NULL) +
   theme_bw() +
@@ -760,5 +805,7 @@ coefficients %>%
 
 ```{r ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
 ```
+
+\newpage
 
 ## References
